@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = import.meta.env.VITEPI_URL  + "/api/cx-service-categories";
+const BASE = import.meta.env.VITE_API_URL  + "/api/cx-service-categories";
 
 // ── Async Thunks ──────────────────────────────────────────
 

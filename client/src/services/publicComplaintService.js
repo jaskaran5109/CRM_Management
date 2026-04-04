@@ -2,7 +2,7 @@
  * Public Complaint APIs (no authentication required)
  */
 
-const PUBLIC_BASE = import.meta.env.VITEPI_URL  + "/api/public/complaints";
+const PUBLIC_BASE = import.meta.env.VITE_API_URL  + "/api/public/complaints";
 
 /**
  * Create a new complaint (public)

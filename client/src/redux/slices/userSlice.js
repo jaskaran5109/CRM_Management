@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { updateLoggedInUser } from "./authSlice";
 
-const BASE = import.meta.env.VITEPI_URL  + "/api/users";
+const BASE = import.meta.env.VITE_API_URL  + "/api/users";
 
 // ── Async Thunks ──────────────────────────────────────────
 
