@@ -1,4 +1,4 @@
-const BASE = "/api";
+const BASE = import.meta.env.RENDER_API_URL + "/api";
 
 const getHeaders = (token) => ({
   "Content-Type": "application/json",

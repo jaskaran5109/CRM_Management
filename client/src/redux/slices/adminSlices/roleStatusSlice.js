@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = "/api/role-statuses";
+const BASE = import.meta.env.RENDER_API_URL + "/api/role-statuses";
 
 // FETCH ALL ROLE STATUSES
 export const fetchAllRoleStatuses = createAsyncThunk(

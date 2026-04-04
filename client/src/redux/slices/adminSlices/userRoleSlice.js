@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = "/api/user-roles";
+const BASE = import.meta.env.RENDER_API_URL + "/api/user-roles";
 
 // ── Async Thunks ──────────────────────────────────────────
 

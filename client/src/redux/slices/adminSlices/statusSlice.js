@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = "/api/statuses";
+const BASE = import.meta.env.RENDER_API_URL + "/api/statuses";
 
 // ── Async Thunks ──────────────────────────────────────────
 

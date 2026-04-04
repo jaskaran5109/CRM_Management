@@ -2,7 +2,7 @@
  * Public Complaint APIs (no authentication required)
  */
 
-const PUBLIC_BASE = "/api/public/complaints";
+const PUBLIC_BASE = import.meta.env.RENDER_API_URL + "/api/public/complaints";
 
 /**
  * Create a new complaint (public)

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { updateLoggedInUser } from "./authSlice";
 
-const BASE = "/api/users";
+const BASE = import.meta.env.RENDER_API_URL + "/api/users";
 
 // ── Async Thunks ──────────────────────────────────────────
 
@@ -69,7 +69,7 @@ export const changeUserRole = createAsyncThunk(
     try {
       const { token } = getState().auth.user;
 
-      const res = await fetch(`/api/users/${userId}/role`, {
+      const res = await fetch(`${BASE}/${userId}/role`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

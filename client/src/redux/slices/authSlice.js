@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = "/api/auth";
+const BASE = import.meta.env.RENDER_API_URL + "/api/auth";
 
 // ── Async Thunks ──────────────────────────────────────────
 

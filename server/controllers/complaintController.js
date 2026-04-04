@@ -439,7 +439,7 @@ export const updateComplaint = async (req, res) => {
     // Send email notification if status changed
     if (statusChanged && complaint.customerEmail) {
       try {
-        // await sendStatusUpdateEmail(complaint, oldStatus, complaint.status);
+        await sendStatusUpdateEmail(complaint, oldStatus, complaint.status);
         console.log("Status update email sent successfully");
       } catch (emailError) {
         console.error("Failed to send status update email:", emailError.message);
