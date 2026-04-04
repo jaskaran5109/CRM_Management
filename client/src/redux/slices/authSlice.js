@@ -1,12 +1,15 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = import.meta.env.RENDER_API_URL + "/api/auth";
+const BASE = import.meta.env.VITEPI_URL  + "/api/auth";
 
 // ── Async Thunks ──────────────────────────────────────────
 
 export const signupUser = createAsyncThunk(
   "auth/signup",
-  async ({ name, email, password, phoneNumber, status }, { rejectWithValue }) => {
+  async (
+    { name, email, password, phoneNumber, status },
+    { rejectWithValue },
+  ) => {
     try {
       const res = await fetch(`${BASE}/signup`, {
         method: "POST",
@@ -164,7 +167,7 @@ const authSlice = createSlice({
           ...state.user,
           name: updatedUser.name,
           status: updatedUser.status,
-          userRole: updatedUser.userRole
+          userRole: updatedUser.userRole,
         };
       }
     },
@@ -221,14 +224,16 @@ const authSlice = createSlice({
       .addCase(forgotPassword.pending, pending)
       .addCase(forgotPassword.fulfilled, (state) => {
         state.loading = false;
-        state.successMessage = "✅ Reset link sent! Check your email for instructions.";
+        state.successMessage =
+          "✅ Reset link sent! Check your email for instructions.";
       })
       .addCase(forgotPassword.rejected, rejected)
       // reset password
       .addCase(resetPassword.pending, pending)
       .addCase(resetPassword.fulfilled, (state) => {
         state.loading = false;
-        state.successMessage = "✅ Password reset successful! Redirecting to login...";
+        state.successMessage =
+          "✅ Password reset successful! Redirecting to login...";
       })
       .addCase(resetPassword.rejected, rejected);
   },

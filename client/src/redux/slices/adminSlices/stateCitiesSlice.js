@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = import.meta.env.RENDER_API_URL + "/api/state-cities";
+const BASE = import.meta.env.VITEPI_URL  + "/api/state-cities";
 
 // ── Async Thunks ──────────────────────────────────────────
 

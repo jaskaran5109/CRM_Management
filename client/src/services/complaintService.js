@@ -1,4 +1,4 @@
-const BASE = import.meta.env.RENDER_API_URL + "/api/complaints";
+const BASE = import.meta.env.VITEPI_URL  + "/api/complaints";
 
 const getHeaders = (token) => ({
   ...(token && { Authorization: `Bearer ${token}` }),

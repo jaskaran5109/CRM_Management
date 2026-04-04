@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const BASE = import.meta.env.RENDER_API_URL + "/api/dashboard";
+const BASE = import.meta.env.VITEPI_URL  + "/api/dashboard";
 
 // 🔹 Helper
 const getHeaders = (token) => ({

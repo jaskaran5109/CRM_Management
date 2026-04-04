@@ -473,7 +473,7 @@ export const updateComplaint = async (req, res) => {
               <li><strong>Priority:</strong> ${complaint.priority}</li>
             </ul>
             
-            <p><a href="http://localhost:5173/track-complaint?phone=${complaint.customerPhone}">View your complaint</a></p>
+            <p><a href="${process.env.FRONTEND_URL}/track-complaint?phone=${complaint.customerPhone}">View your complaint</a></p>
             <p>Best regards,<br>CRM Support Team</p>
           `;
 

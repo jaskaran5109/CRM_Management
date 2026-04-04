@@ -24,8 +24,6 @@ const app = express();
 
 // CORS Configuration for all environments
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
   process.env.FRONTEND_URL,
   process.env.CORS_ORIGIN,
 ].filter(Boolean); // Remove undefined values
