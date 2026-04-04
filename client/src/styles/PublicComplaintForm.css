@@ -1,0 +1,376 @@
+.complaint-form-container {
+  min-height: 100vh;
+  /* background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); */
+  padding: 40px 20px;
+}
+
+.complaint-form-wrapper {
+  max-width: 700px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.form-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 30px;
+  text-align: center;
+}
+
+.form-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.form-header p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.complaint-form {
+  padding: 40px 30px;
+}
+
+.form-section {
+  margin-bottom: 40px;
+  border: none;
+  padding: 0;
+}
+
+.form-section legend {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #667eea;
+  width: 100%;
+}
+
+/* New 2-column responsive layout */
+.form-section-group {
+  background: var(--card-bg, #f8f9fa) !important;
+  border: 1px solid var(--border, #e0e0e0) !important;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.form-section-group h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #333) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--primary, #667eea) !important;
+}
+
+.form-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.form-group .required {
+  color: #e74c3c;
+  margin-left: 4px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 120px;
+}
+
+.form-group small {
+  display: block;
+  color: #666;
+  font-size: 12px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row-two {
+    grid-template-columns: 1fr;
+  }
+
+  .complaint-form-wrapper {
+    max-width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .complaint-form {
+    padding: 24px 16px;
+  }
+
+  .form-section-group {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-section-group h4 {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .form-row-two {
+    gap: 12px;
+  }
+
+  .form-header {
+    padding: 30px 20px;
+  }
+
+  .form-header h1 {
+    font-size: 22px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .form-actions .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .form-info,
+  .form-tracking-section {
+    padding: 20px;
+    margin-top: 20px;
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 40px;
+  border-top: 1px solid #eee;
+  padding-top: 30px;
+}
+
+.form-actions .btn {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-actions .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.form-actions .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.form-actions .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-actions .btn-outline {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.form-actions .btn-outline:hover {
+  background: #f8f9ff;
+}
+
+.form-info {
+  background: #f8f9fa;
+  padding: 30px;
+  margin-top: 40px;
+}
+
+.form-info h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.form-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.form-info li {
+  padding: 8px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.form-tracking-section {
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  border: 2px solid #667eea40;
+  border-radius: 8px;
+  padding: 30px;
+  margin-top: 30px;
+  text-align: center;
+}
+
+.form-tracking-section h3 {
+  margin: 0 0 10px 0;
+  color: #667eea;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-tracking-section p {
+  margin: 0 0 20px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.form-tracking-section .btn {
+  display: inline-block;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .complaint-form-wrapper {
+    background: #2a2a2a;
+  }
+
+  .complaint-form {
+    color: #e0e0e0;
+  }
+
+  .form-section legend {
+    color: #e0e0e0;
+    border-bottom-color: #667eea;
+  }
+
+  .form-section-group {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+  }
+
+  .form-section-group h4 {
+    color: #e0e0e0;
+    border-bottom-color: #667eea;
+  }
+
+  .form-group label {
+    color: #e0e0e0;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    background: #2a2a2a;
+    border-color: #5a5a5a;
+    color: #e0e0e0;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: #999;
+  }
+
+  .form-group small {
+    color: #999;
+  }
+
+  .form-actions {
+    border-top-color: #3a3a3a;
+  }
+
+  .form-actions .btn-outline {
+    background: transparent;
+    color: #667eea;
+    border-color: #667eea;
+  }
+
+  .form-actions .btn-outline:hover {
+    background: #667eea15;
+  }
+
+  .form-info {
+    background: #3a3a3a;
+  }
+
+  .form-info h3,
+  .form-info li {
+    color: #e0e0e0;
+  }
+
+  .form-tracking-section {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border-color: #667eea40;
+  }
+
+  .form-tracking-section h3 {
+    color: #667eea;
+  }
+
+  .form-tracking-section p {
+    color: #c0c0c0;
+  }
+}

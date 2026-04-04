@@ -1,0 +1,44 @@
+/* CreateComplaint Page Styles */
+.create-complaint-container {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 2rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .create-complaint-container {
+    padding: 2rem 1.5rem 2rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .create-complaint-container {
+    padding: 2rem 2rem 2rem 2rem;
+  }
+}
+
+.create-complaint-header {
+  margin-bottom: 2rem;
+}
+
+.create-complaint-title {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.dark .create-complaint-title {
+  color: #ffffff;
+}
+
+.create-complaint-subtitle {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #6b7280;
+}
+
+.dark .create-complaint-subtitle {
+  color: #9ca3af;
+}

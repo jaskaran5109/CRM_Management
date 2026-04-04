@@ -1,0 +1,41 @@
+{
+  "typescript.preferences.noSemicolons": "off",
+  "typescript.suggest.autoImports": false,
+  "typescript.updateImportsOnFileMove.enabled": "never",
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.format.semicolons": "insert",
+  "typescript.validate.enable": false,
+  "javascript.validate.enable": false,
+  "typescript.check.npmIsInstalled": false,
+  "typescript.npm": "",
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.suggest.completeFunctionCalls": false,
+  "typescript.suggest.includeCompletionsForImportStatements": false,
+  "typescript.suggest.includeAutomaticOptionalChainCompletions": false,
+  "typescript.suggest.includeCompletionsWithSnippetText": false,
+  "typescript.suggest.includeCompletionsForModuleExports": false,
+  "typescript.suggest.includeCompletionsWithInsertText": false,
+  "typescript.suggest.includeCompletionsWithObjectLiteralMethodSnippets": false,
+  "typescript.preferences.useAliasesForRenames": false,
+  "typescript.preferences.renameShorthandProperties": false,
+  "typescript.preferences.allowRenameOfImportPath": false,
+  "typescript.referencesCodeLens.enabled": false,
+  "typescript.implementationsCodeLens.enabled": false,
+  "typescript.openTsServerLogOnError": false,
+  "typescript.reportStyleChecksAsWarnings": false,
+  "typescript.surveys.enabled": false,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/dist": true,
+    "**/build": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true
+  }
+}

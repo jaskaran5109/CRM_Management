@@ -1,0 +1,186 @@
+/* ComplaintCard Component Styles */
+.complaint-card {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  transition: box-shadow 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.dark .complaint-card {
+  background-color: #1f2937;
+}
+
+.complaint-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.complaint-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.complaint-card-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.dark .complaint-card-title {
+  color: #ffffff;
+}
+
+.complaint-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.complaint-card-status-badge,
+.complaint-card-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+/* Status Badge Colors */
+.complaint-card-status-open {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.dark .complaint-card-status-open {
+  background-color: #451a03;
+  color: #fbbf24;
+}
+
+.complaint-card-status-in_progress {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.dark .complaint-card-status-in_progress {
+  background-color: #1e3a8a;
+  color: #60a5fa;
+}
+
+.complaint-card-status-resolved {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.dark .complaint-card-status-resolved {
+  background-color: #14532d;
+  color: #4ade80;
+}
+
+.complaint-card-status-closed {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.dark .complaint-card-status-closed {
+  background-color: #374151;
+  color: #9ca3af;
+}
+
+/* Priority Badge Colors */
+.complaint-card-priority-low {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.dark .complaint-card-priority-low {
+  background-color: #14532d;
+  color: #4ade80;
+}
+
+.complaint-card-priority-medium {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.dark .complaint-card-priority-medium {
+  background-color: #451a03;
+  color: #fbbf24;
+}
+
+.complaint-card-priority-high {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.dark .complaint-card-priority-high {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+.complaint-card-content {
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.dark .complaint-card-content {
+  color: #9ca3af;
+}
+
+.complaint-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #6b7280;
+}
+
+.dark .complaint-card-footer {
+  color: #9ca3af;
+}
+
+.complaint-card-category {
+  font-weight: 500;
+  color: #374151;
+}
+
+.dark .complaint-card-category {
+  color: #d1d5db;
+}
+
+.complaint-card-date {
+  color: #9ca3af;
+}
+
+.dark .complaint-card-date {
+  color: #6b7280;
+}
+
+.complaint-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.complaint-card-delete-btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  background-color: #dc2626;
+  color: #ffffff;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.complaint-card-delete-btn:hover {
+  background-color: #b91c1c;
+}

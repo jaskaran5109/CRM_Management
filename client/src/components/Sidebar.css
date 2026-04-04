@@ -1,0 +1,243 @@
+/* --- Variables for easier theming --- */
+:root {
+  --sidebar-width: 250px;
+}
+
+/* --- Base Sidebar Styles --- */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100%;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 8px var(--shadow);
+  z-index: 1000; /* Ensure sidebar is above other content */
+  transition: transform 0.3s ease-in-out, background-color 0.3s ease, color 0.3s ease;
+  transform: translateX(0); /* Default visible for desktop */
+}
+
+/* --- Sidebar Backdrop (for mobile overlay) --- */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none; /* Hidden by default, shown when sidebar is open on mobile */
+}
+
+/* --- Sidebar Open State (for mobile) --- */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%); /* Hidden by default on mobile */
+  }
+  .sidebar.open {
+    transform: translateX(0); /* Slides in when open */
+  }
+  .sidebar-backdrop.open {
+    display: block; /* Show backdrop when sidebar is open */
+  }
+}
+
+/* --- Sidebar Top Section (Brand and Close Button) --- */
+.sidebar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; /* Prevents shrinking */
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.sidebar-logo {
+  background-color: var(--primary); /* Accent color for logo */
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-light);
+}
+
+.sidebar-brand-text h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.sidebar-brand-text span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sidebar-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  display: none; /* Hidden by default, shown on mobile */
+}
+@media (max-width: 768px) {
+  .sidebar-close {
+    display: block;
+  }
+}
+
+/* --- Scrollable Content Area --- */
+.sidebar-scrollable-content {
+  flex-grow: 1; /* Allows content to take available space */
+  overflow-y: auto; /* Adds scrollbar if content overflows */
+  padding-bottom: 20px; /* Space above footer */
+  scrollbar-width: thin;
+}
+
+
+/* --- Sidebar Section Titles --- */
+.sidebar-section {
+  margin-top: 20px;
+  padding: 0 10px;
+}
+
+.sidebar-section-title {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* --- Navigation Links --- */
+.sidebar-links {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  margin-bottom: 5px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--sidebar-text);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sidebar-link:hover {
+  background-color: var(--sidebar-link-hover);
+  color: var(--sidebar-text);
+}
+
+.sidebar-link.active {
+  background-color: var(--sidebar-link-active);
+  color: var(--sidebar-text-active);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 0 var(--sidebar-text-active); /* Left border highlight for active */
+}
+
+.sidebar-icon {
+  display: flex; /* Ensures icon alignment */
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+/* --- Sidebar Footer (User Card and Logout) --- */
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0; /* Prevents shrinking */
+  background-color: var(--sidebar-bg); /* Ensure footer background is consistent */
+}
+
+.sidebar-user-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  background-color: var(--sidebar-link-active); /* Matches active link bg */
+  padding: 10px 15px;
+  border-radius: 8px;
+  color: var(--sidebar-text-active);
+}
+
+.sidebar-avatar {
+  background-color: var(--primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+}
+
+.sidebar-user-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sidebar-text-active);
+}
+
+.sidebar-user-info p {
+  margin: 2px 0 0 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.sidebar-user-info .role-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-top: 5px;
+  color: #fff;
+}
+
+/* --- Logout Button --- */
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  background-color: var(--sidebar-link-hover); /* Darker hover bg */
+  border: none;
+  color: var(--sidebar-text);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-logout:hover {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1)
+}

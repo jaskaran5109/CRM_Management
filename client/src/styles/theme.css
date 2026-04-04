@@ -1,0 +1,248 @@
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL THEME SYSTEM - CSS VARIABLES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Light Theme (Default) */
+:root,
+[data-theme="light"] {
+  /* ──── Color Palette ──── */
+  --primary: #2563eb;
+  --secondary: #7c3aed;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+
+  /* ──── Background Colors ──── */
+  --bg: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f3f4f6;
+  --bg-hover: #f0f1f3;
+  --bg-rgb: 255, 255, 255;
+
+  /* ──── Text Colors ──── */
+  --text: #1f2937;
+  --text-secondary: #6b6375;
+  --text-muted: #888888;
+  --text-placeholder: #9ca3af;
+  --text-light: #d1d5db;
+
+  /* ──── Border Colors ──── */
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+
+  /* ──── Sidebar Colors ──── */
+  --sidebar-bg: #f9fafb;
+  --sidebar-text: #374151;
+  --sidebar-text-active: #ffffff;
+  --sidebar-link-bg: transparent;
+  --sidebar-link-hover: #e5e7eb;
+  --sidebar-link-active: #2563eb;
+  --sidebar-link-active-bg: #2563eb;
+
+  /* ──── Card & Surface ──── */
+  --card-bg: #ffffff;
+  --card-border: rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 14px 30px rgba(15, 23, 42, 0.12);
+  --shadow-overlay: rgba(17, 24, 39, 0.6);
+
+  /* ──── Status Colors ──── */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --info-bg: rgba(59, 130, 246, 0.1);
+
+  /* ──── Modal & Overlay ──── */
+  --modal-bg: #ffffff;
+  --modal-overlay: rgba(17, 24, 39, 0.6);
+
+  /* ──── Chart Colors ──── */
+  --chart-grid: #e5e7eb;
+  --chart-bg: transparent;
+  --chart-text: #1f2937;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e5e7eb;
+  --chart-primary: #2563eb;
+  --chart-secondary: #7c3aed;
+
+  /* ──── Table Colors ──── */
+  --table-bg: #ffffff;
+  --table-header-bg: #f3f4f6;
+  --table-header-text: #1f2937;
+  --table-border: #e5e7eb;
+  --table-row-hover: #f9fafb;
+  --table-row-striped: #fafbfc;
+  --table-text: #1f2937;
+
+  /* ──── Transitions ──── */
+  --transition-normal: all 0.2s ease;
+  --transition-smooth: all 0.3s ease;
+
+  /* ──── Code Block ──── */
+  --code-bg: #f4f3ec;
+
+  color-scheme: light;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  /* ──── Color Palette ──── */
+  --primary: #60a5fa;
+  --secondary: #a78bfa;
+  --accent: #c084fc;
+  --accent-bg: rgba(192, 132, 252, 0.15);
+  --accent-border: rgba(192, 132, 252, 0.5);
+
+  /* ──── Background Colors ──── */
+  --bg: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-hover: #1a1f35;
+  --bg-rgb: 17, 24, 39;
+
+  /* ──── Text Colors ──── */
+  --text: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-placeholder: #6b7280;
+  --text-light: #d1d5db;
+
+  /* ──── Border Colors ──── */
+  --border: #374151;
+  --border-light: #1f2937;
+
+  /* ──── Sidebar Colors ──── */
+  --sidebar-bg: #1f2937;
+  --sidebar-text: #d1d5db;
+  --sidebar-text-active: #ffffff;
+  --sidebar-link-bg: transparent;
+  --sidebar-link-hover: #374151;
+  --sidebar-link-active: #60a5fa;
+  --sidebar-link-active-bg: #60a5fa;
+
+  /* ──── Card & Surface ──── */
+  --card-bg: #1f2937;
+  --card-border: rgba(255, 255, 255, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 14px 30px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: rgba(0, 0, 0, 0.7);
+
+  /* ──── Status Colors ──── */
+  --success: #34d399;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+  --success-bg: rgba(52, 211, 153, 0.15);
+  --error-bg: rgba(248, 113, 113, 0.15);
+  --warning-bg: rgba(251, 191, 36, 0.15);
+  --info-bg: rgba(96, 165, 250, 0.15);
+
+  /* ──── Modal & Overlay ──── */
+  --modal-bg: #1f2937;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+
+  /* ──── Chart Colors ──── */
+  --chart-grid: #4b5563;
+  --chart-bg: transparent;
+  --chart-text: #f9fafb;
+  --chart-tooltip-bg: #1f2937;
+  --chart-tooltip-border: #374151;
+  --chart-primary: #60a5fa;
+  --chart-secondary: #a78bfa;
+
+  /* ──── Table Colors ──── */
+  --table-bg: #1f2937;
+  --table-header-bg: #111827;
+  --table-header-text: #f9fafb;
+  --table-border: #374151;
+  --table-row-hover: #2d3748;
+  --table-row-striped: #1a202c;
+  --table-text: #e5e7eb;
+
+  /* ──── Transitions ──── */
+  --transition-normal: all 0.2s ease;
+  --transition-smooth: all 0.3s ease;
+
+  /* ──── Code Block ──── */
+  --code-bg: #1f2028;
+
+  color-scheme: dark;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SMOOTH THEME TRANSITION
+   ═══════════════════════════════════════════════════════════ */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Disable transition for inputs to avoid lag */
+input,
+textarea,
+select {
+  transition: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILITY CLASSES FOR THEME-AWARE STYLING
+   ═══════════════════════════════════════════════════════════ */
+
+/* Text utilities */
+.text-primary {
+  color: var(--primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-light {
+  color: var(--text-light);
+}
+
+/* Background utilities */
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+/* Border utilities */
+.border-primary {
+  border-color: var(--primary);
+}
+
+.border-card {
+  border-color: var(--card-border);
+}
+
+/* Shadow utilities */
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow {
+  box-shadow: var(--shadow);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}

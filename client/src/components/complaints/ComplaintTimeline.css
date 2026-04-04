@@ -1,0 +1,160 @@
+/* ComplaintTimeline Component Styles */
+.complaint-timeline-container {
+  padding: 1.5rem;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dark .complaint-timeline-container {
+  background-color: #1f2937;
+}
+
+.complaint-timeline-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.dark .complaint-timeline-title {
+  color: #ffffff;
+}
+
+.complaint-timeline-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.complaint-timeline-empty-icon {
+  margin: 0 auto;
+  height: 3rem;
+  width: 3rem;
+  color: #d1d5db;
+}
+
+.dark .complaint-timeline-empty-icon {
+  color: #4b5563;
+}
+
+.complaint-timeline-empty-title {
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.dark .complaint-timeline-empty-title {
+  color: #9ca3af;
+}
+
+.complaint-timeline-empty-message {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #9ca3af;
+}
+
+.dark .complaint-timeline-empty-message {
+  color: #6b7280;
+}
+
+.complaint-timeline-list {
+  position: relative;
+}
+
+.complaint-timeline-item {
+  position: relative;
+  padding-left: 2.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.complaint-timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 0.625rem;
+  top: 1.5rem;
+  bottom: -0.5rem;
+  width: 0.125rem;
+  background-color: #e5e7eb;
+}
+
+.dark .complaint-timeline-item:not(:last-child)::before {
+  background-color: #374151;
+}
+
+.complaint-timeline-dot {
+  position: absolute;
+  left: 0.25rem;
+  top: 0.25rem;
+  height: 0.75rem;
+  width: 0.75rem;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  border: 2px solid #ffffff;
+}
+
+.dark .complaint-timeline-dot {
+  border-color: #1f2937;
+}
+
+.complaint-timeline-content {
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.dark .complaint-timeline-content {
+  background-color: #374151;
+}
+
+.complaint-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.complaint-timeline-action {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.dark .complaint-timeline-action {
+  color: #ffffff;
+}
+
+.complaint-timeline-user {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #6b7280;
+}
+
+.dark .complaint-timeline-user {
+  color: #9ca3af;
+}
+
+.complaint-timeline-message {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.dark .complaint-timeline-message {
+  color: #d1d5db;
+}
+
+.complaint-timeline-time {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #9ca3af;
+}
+
+.dark .complaint-timeline-time {
+  color: #6b7280;
+}
