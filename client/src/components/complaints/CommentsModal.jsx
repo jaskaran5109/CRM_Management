@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import "./CommentsModal.css";
 import { useSelector } from "react-redux";
+import { addComment, fetchComments } from "../../services/complaintService";
 
-export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdded }) {
+export default function CommentsModal({
+  complaint,
+  isOpen,
+  onClose,
+  onCommentAdded,
+}) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -14,20 +20,15 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
   // Fetch comments when modal opens
   useEffect(() => {
     if (isOpen && complaint?._id) {
-      fetchComments();
+      fetchAllComments();
     }
   }, [isOpen, complaint?._id]);
 
-  const fetchComments = async () => {
+  const fetchAllComments = async () => {
     setLoading(true);
     try {
       const token = user?.token;
-      const response = await fetch(
-        `/api/complaints/${complaint._id}/comments?includeInternal=true`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await fetchComments(complaint._id, token);
 
       if (!response.ok) {
         throw new Error("Failed to fetch comments");
@@ -55,17 +56,14 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
 
     try {
       const token = user?.token;
-      const response = await fetch(`/api/complaints/${complaint._id}/comments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const response = await addComment(
+        complaint._id,
+        JSON.stringify({
           message: commentText,
           isInternal,
         }),
-      });
+        token,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to add comment");
@@ -100,7 +98,9 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
       <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Comments - {complaint?.title}</h2>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button className="close-btn" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="modal-content">
@@ -120,10 +120,16 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
                   >
                     <div className="comment-top">
                       <strong className="comment-author">
-                        {comment.userId?.name || comment.customerName || "Customer"}
+                        {comment.userId?.name ||
+                          comment.customerName ||
+                          "Customer"}
                       </strong>
-                      {comment.isInternal && <span className="badge-internal">Internal</span>}
-                      <span className="comment-date">{formatDate(comment.createdAt)}</span>
+                      {comment.isInternal && (
+                        <span className="badge-internal">Internal</span>
+                      )}
+                      <span className="comment-date">
+                        {formatDate(comment.createdAt)}
+                      </span>
                     </div>
                     <p className="comment-text">{comment.message}</p>
                   </div>
