@@ -42,7 +42,6 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
       },
   ];
 
-  console.log(user);
   // Added icons to adminItems
   const adminItems =
     user?.role === "admin"
