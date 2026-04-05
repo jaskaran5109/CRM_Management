@@ -49,6 +49,10 @@ export default function Complaints() {
     dispatch(listComplaints({ queryString: "" }));
     return () => dispatch(clearComplaintStatus());
   }, [dispatch]);
+  
+  const onCommentAdded = useCallback(() => {
+    dispatch(listComplaints({ queryString: "" }));
+  }, [dispatch]);
 
   useEffect(() => {
     if (error && !toast.isActive("error-toast")) {
@@ -529,6 +533,7 @@ export default function Complaints() {
           complaint={selectedComplaint}
           isOpen={showCommentsModal}
           onClose={closeCommentsModal}
+          onCommentAdded={onCommentAdded}
         />
       )}
     </div>

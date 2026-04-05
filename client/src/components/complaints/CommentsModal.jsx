@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import "./CommentsModal.css";
 import { useSelector } from "react-redux";
 import { addComment, fetchComments } from "../../services/complaintService";
+import { fetchComplaintHistoryAction } from "../../redux/slices/complaintSlice";
 
 export default function CommentsModal({
   complaint,
@@ -28,14 +29,8 @@ export default function CommentsModal({
     setLoading(true);
     try {
       const token = user?.token;
-      const response = await fetchComments(complaint._id, token);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch comments");
-      }
-
-      const result = await response.json();
-      setComments(result.data || []);
+      const data = await fetchComments(complaint._id, token);
+      setComments(data?.data || []);
     } catch (error) {
       console.error("Fetch comments error:", error);
       toast.error("Failed to load comments");
@@ -56,28 +51,22 @@ export default function CommentsModal({
 
     try {
       const token = user?.token;
-      const response = await addComment(
+      const data = await addComment(
         complaint._id,
-        JSON.stringify({
+        {
           message: commentText,
           isInternal,
-        }),
+        },
         token,
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to add comment");
-      }
-
-      const result = await response.json();
-      setComments((prev) => [...prev, result.data]);
-      setCommentText("");
-      setIsInternal(false);
-      toast.success("Comment added successfully");
-
-      // Call callback
-      if (onCommentAdded) {
-        onCommentAdded(result.data);
+      if(data?.data?._id){
+        setCommentText("");
+        setIsInternal(false);
+        const comments = await fetchComments(complaint?._id, token);
+        setComments(comments?.data || []);
+        dispatch(fetchComplaintHistoryAction({ id: complaint?._id }));
+        toast.success("Comment added successfully");
       }
     } catch (error) {
       console.error("Submit comment error:", error);
@@ -109,11 +98,11 @@ export default function CommentsModal({
             <h3>All Comments</h3>
             {loading ? (
               <div className="loading">Loading comments...</div>
-            ) : comments.length === 0 ? (
+            ) : comments?.length === 0 ? (
               <div className="no-comments">No comments yet</div>
             ) : (
               <div className="comments-list">
-                {comments.map((comment) => (
+                {comments?.map((comment) => (
                   <div
                     key={comment._id}
                     className={`comment-item ${comment.isInternal ? "internal" : "public"}`}
