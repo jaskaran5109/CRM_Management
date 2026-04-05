@@ -152,6 +152,14 @@ router.post("/:id/assign", assignComplaint);
 router.patch("/:id/status", updateComplaintStatus);
 
 /**
+ * GET - GET /api/complaints/:id/comments
+ * Get comments on complaint
+ * Query params: includeInternal? (for admin)
+ * Protected: Yes - requires authentication
+ */
+router.get("/:id/comments", protect, getComplaintComments);
+
+/**
  * POST - POST /api/complaints/:id/comments
  * Add comment to complaint
  * Body: { message, isInternal? }
@@ -159,12 +167,5 @@ router.patch("/:id/status", updateComplaintStatus);
  */
 router.post("/:id/comments", protect, addComplaintComment);
 
-/**
- * GET - GET /api/complaints/:id/comments
- * Get comments on complaint
- * Query params: includeInternal? (for admin)
- * Protected: Yes - requires authentication
- */
-router.get("/:id/comments", protect, getComplaintComments);
 
 export default router;
