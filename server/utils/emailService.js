@@ -112,7 +112,6 @@ export const sendCommentNotificationEmail = async (complaint, comment) => {
       html: emailContent,
     });
 
-    console.log("Comment notification email sent:", result);
     return { success: true, messageId: result.id };
   } catch (error) {
     console.error("Failed to send comment notification email:", error);

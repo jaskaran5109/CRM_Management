@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import "./CommentsModal.css";
+import { useSelector } from "react-redux";
 
 export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdded }) {
   const [comments, setComments] = useState([]);
@@ -8,6 +9,7 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
   const [commentText, setCommentText] = useState("");
   const [isInternal, setIsInternal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useSelector((state) => state.auth);
 
   // Fetch comments when modal opens
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
   const fetchComments = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = user?.token;
       const response = await fetch(
         `/api/complaints/${complaint._id}/comments?includeInternal=true`,
         {
@@ -52,7 +54,7 @@ export default function CommentsModal({ complaint, isOpen, onClose, onCommentAdd
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem("authToken");
+      const token = user?.token;
       const response = await fetch(`/api/complaints/${complaint._id}/comments`, {
         method: "POST",
         headers: {

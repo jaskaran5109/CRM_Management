@@ -48,7 +48,6 @@ export default function ComplaintDetail() {
   const [priority, setPriority] = useState("");
   const [assignedUser, setAssignedUser] = useState("");
   const { users } = useSelector((state) => state.users);    
-console.log(current);
 
   useEffect(() => {
     dispatch(getComplaint({ id }));
