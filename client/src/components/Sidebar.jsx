@@ -34,12 +34,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     { label: "Dashboard", path: "/", icon: <MdSpaceDashboard /> },
     { label: "Complaints", path: "/complaints", icon: <MdPointOfSale /> },
     // { label: "Profile", path: "/profile", icon: <MdPerson /> },
-    user?.role === "admin" &&
-      user?.userRole?.length !== 0 && {
-        label: "CX Data",
-        path: "/cx-data",
-        icon: <MdAnalytics />,
-      },
+    user?.role === "admin" && {
+      label: "CX Data",
+      path: "/cx-data",
+      icon: <MdAnalytics />,
+    },
   ];
 
   // Added icons to adminItems

@@ -6,7 +6,7 @@ const router = express.Router();
 
 
 // ✅ GET ALL STATUSES
-router.get("/", protect, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const statuses = await Status.find().sort({ createdAt: -1 });
     res.json(statuses);

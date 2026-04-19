@@ -5,13 +5,10 @@ const BASE = import.meta.env.VITE_API_URL  + "/api/statuses";
 // ── Async Thunks ──────────────────────────────────────────
 
 export const fetchAllStatuses = createAsyncThunk(
-  "statuses/",
+  "statuses/fetchAll",
   async (_, { getState, rejectWithValue }) => {
     try {
-      const { token } = getState().auth.user;
-      const res = await fetch(BASE, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(BASE);
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data.message);
       return data;
