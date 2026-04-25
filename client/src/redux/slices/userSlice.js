@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { updateLoggedInUser } from "./authSlice";
+import { getApiBaseUrl } from "../../config/apiConfig";
 
-const BASE = import.meta.env.VITE_API_URL  + "/api/users";
+const BASE = `${getApiBaseUrl()}/users`;
 
 // ── Async Thunks ──────────────────────────────────────────
 
@@ -103,7 +104,7 @@ export const createUser = createAsyncThunk(
   async (userData, { getState, rejectWithValue }) => {
     try {
       const { token } = getState().auth.user;
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch(`${getApiBaseUrl()}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -126,7 +127,7 @@ export const updateUser = createAsyncThunk(
   async ({ id, updates }, { getState, rejectWithValue }) => {
     try {
       const { token } = getState().auth.user;
-      const res = await fetch(`/api/users/${id}`, {
+      const res = await fetch(`${getApiBaseUrl()}/users/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +151,7 @@ export const bulkUploadUsers = createAsyncThunk(
     try {
       const { token } = getState().auth.user;
 
-      const res = await fetch("/api/users/bulk", {
+      const res = await fetch(`${getApiBaseUrl()}/users/bulk`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -9,6 +9,7 @@ import { Resend } from "resend";
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
+const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@crm.example.com";
 
 // Generate JWT
 const generateToken = (id) =>
@@ -26,7 +27,7 @@ const generateToken = (id) =>
 export const sendResetEmail = async (user, resetUrl) => {
   try {
     const response = await resend.emails.send({
-      from: process.env.EMAIL_FROM,
+      from: emailFrom,
       to: user.email,
       subject: "🔐 Password Reset Request",
       html: `
@@ -219,7 +220,7 @@ router.post("/forgot-password", async (req, res) => {
     // };
 
     await resend.emails.send({
-      from: process.env.EMAIL_USER, // e.g. no-reply@yourdomain.com
+      from: emailFrom,
       to: user.email,
       subject: "🔐 Password Reset Request",
       html: `

@@ -30,7 +30,7 @@ export default function CreateComplaint() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <div className="rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-6 shadow-[var(--shadow-sm)]">
         <ComplaintForm onSuccess={handleSuccess} />
       </div>
     </div>

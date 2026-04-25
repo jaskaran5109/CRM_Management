@@ -41,7 +41,7 @@ export const createPublicComplaint = async (req, res) => {
     // Check if customer exists in the system by phone number
     let linkedCustomer = null;
     try {
-      linkedCustomer = await User.findOne({ phone: customerPhone }).select("_id");
+      linkedCustomer = await User.findOne({ phoneNumber: customerPhone }).select("_id");
     } catch (error) {
       // Phone not found, continue without linking
       console.log("Customer not found by phone:", customerPhone);

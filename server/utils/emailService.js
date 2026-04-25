@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@crm.example.com";
 
 /**
  * Send complaint creation confirmation email
@@ -27,7 +28,7 @@ export const sendComplaintConfirmationEmail = async (complaint) => {
     `;
 
     const result = await resend.emails.send({
-      from: process.env.EMAIL_USER || "noreply@crm.example.com",
+      from: emailFrom,
       to: complaint.customerEmail,
       subject: `Complaint Confirmation - Reference ID: ${complaint._id}`,
       html: emailContent,
@@ -66,7 +67,7 @@ export const sendStatusUpdateEmail = async (complaint, oldStatus, newStatus) => 
     `;
 
     const result = await resend.emails.send({
-      from: process.env.EMAIL_USER || "noreply@crm.example.com",
+      from: emailFrom,
       to: complaint.customerEmail,
       subject: `Complaint Status Update - Reference ID: ${complaint._id}`,
       html: emailContent,
@@ -106,7 +107,7 @@ export const sendCommentNotificationEmail = async (complaint, comment) => {
     `;
 
     const result = await resend.emails.send({
-      from: process.env.EMAIL_USER || "noreply@crm.example.com",
+      from: emailFrom,
       to: complaint.customerEmail,
       subject: `New Comment on Your Complaint - Reference ID: ${complaint._id}`,
       html: emailContent,
@@ -147,7 +148,7 @@ export const sendComplaintAssignmentEmail = async (complaint, assignedUserEmail,
     `;
 
     const result = await resend.emails.send({
-      from: process.env.EMAIL_USER || "noreply@crm.example.com",
+      from: emailFrom,
       to: assignedUserEmail,
       subject: `New Complaint Assigned - Reference ID: ${complaint._id}`,
       html: emailContent,

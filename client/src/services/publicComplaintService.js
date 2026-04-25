@@ -1,8 +1,9 @@
 /**
  * Public Complaint APIs (no authentication required)
  */
+import { getApiBaseUrl } from "../config/apiConfig";
 
-const PUBLIC_BASE = import.meta.env.VITE_API_URL  + "/api/public/complaints";
+const PUBLIC_BASE = `${getApiBaseUrl()}/public/complaints`;
 
 /**
  * Create a new complaint (public)

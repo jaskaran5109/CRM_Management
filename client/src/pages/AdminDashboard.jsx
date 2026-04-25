@@ -18,7 +18,6 @@ import {
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
 import { fetchAllStatuses } from "../redux/slices/adminSlices/statusSlice";
-import './CXData.css'
 import { MdDelete, MdEdit } from "react-icons/md";
 
 export default function AdminDashboard() {
@@ -635,7 +634,7 @@ export default function AdminDashboard() {
   const toggleChangePassword = () => setChangePassword(!changePassword);
 
   return (
-    <div className="dashboard">
+    <div className="admin-page admin-users-page dashboard">
       <div className="dash-header">
         <div>
           <h2>Users</h2>
@@ -705,8 +704,12 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <div className="table-wrap">
-          <div className="bulk-actions">
-            <label>
+          <div className="bulk-actions" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '15px'
+          }}>
+            <label className="pr-3">
               <input
                 type="checkbox"
                 checked={selectAll}

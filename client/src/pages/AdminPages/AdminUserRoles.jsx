@@ -148,7 +148,7 @@ export default function AdminUserRoles() {
   };
 
   return (
-    <div className="dashboard">
+    <div className="admin-page dashboard">
       <div className="dash-header">
         <div>
           <h2>Admin User Roles</h2>

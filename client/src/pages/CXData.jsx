@@ -959,7 +959,7 @@ export default function CXData() {
   };
 
   return (
-    <div className="dashboard">
+    <div className="cx-data-page">
       <div className="dash-header">
         <div>
           <h2>CX Data</h2>

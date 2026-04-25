@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL  + "/api";
+import { getApiBaseUrl } from "./config/apiConfig";
+
+const BASE = getApiBaseUrl();
 
 const getHeaders = (token) => ({
   "Content-Type": "application/json",

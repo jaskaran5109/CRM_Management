@@ -8,9 +8,13 @@ export default function ComplaintForm({ onSuccess }) {
   const { loading, error } = useSelector((state) => state.complaints);
 
   const [formData, setFormData] = useState({
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
     title: "",
     description: "",
-    category: "",
+    modelName: "",
+    serviceCategoryName: "",
     priority: "medium",
   });
   const [attachments, setAttachments] = useState(null);
@@ -18,9 +22,11 @@ export default function ComplaintForm({ onSuccess }) {
 
   const validateForm = () => {
     const errors = {};
+    if (!formData.customerName.trim()) errors.customerName = "Customer name is required";
+    if (!formData.customerEmail.trim()) errors.customerEmail = "Customer email is required";
+    if (!formData.customerPhone.trim()) errors.customerPhone = "Customer phone is required";
     if (!formData.title.trim()) errors.title = "Title is required";
     if (!formData.description.trim()) errors.description = "Description is required";
-    if (!formData.category.trim()) errors.category = "Category is required";
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -39,8 +45,8 @@ export default function ComplaintForm({ onSuccess }) {
       });
     }
 
-    await dispatch(createComplaintAction({ formData: data }));
-    if (onSuccess) onSuccess();
+    const result = await dispatch(createComplaintAction({ formData: data }));
+    if (!result.error && onSuccess) onSuccess();
   };
 
   const handleChange = (e) => {
@@ -53,6 +59,63 @@ export default function ComplaintForm({ onSuccess }) {
 
   return (
     <form onSubmit={handleSubmit} className="complaint-form-card">
+      <div>
+        <label htmlFor="customerName" className="complaint-form-label">
+          Customer Name *
+        </label>
+        <input
+          type="text"
+          id="customerName"
+          name="customerName"
+          value={formData.customerName}
+          onChange={handleChange}
+          className={`complaint-form-input ${validationErrors.customerName ? "border-red-500" : ""}`}
+          placeholder="Customer full name"
+          required
+        />
+        {validationErrors.customerName && (
+          <p className="complaint-form-error">{validationErrors.customerName}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="customerEmail" className="complaint-form-label">
+          Customer Email *
+        </label>
+        <input
+          type="email"
+          id="customerEmail"
+          name="customerEmail"
+          value={formData.customerEmail}
+          onChange={handleChange}
+          className={`complaint-form-input ${validationErrors.customerEmail ? "border-red-500" : ""}`}
+          placeholder="customer@example.com"
+          required
+        />
+        {validationErrors.customerEmail && (
+          <p className="complaint-form-error">{validationErrors.customerEmail}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="customerPhone" className="complaint-form-label">
+          Customer Phone *
+        </label>
+        <input
+          type="tel"
+          id="customerPhone"
+          name="customerPhone"
+          value={formData.customerPhone}
+          onChange={handleChange}
+          className={`complaint-form-input ${validationErrors.customerPhone ? "border-red-500" : ""}`}
+          placeholder="10-digit phone number"
+          required
+        />
+        {validationErrors.customerPhone && (
+          <p className="complaint-form-error">{validationErrors.customerPhone}</p>
+        )}
+      </div>
+
       <div>
         <label htmlFor="title" className="complaint-form-label">
           Title *
@@ -92,22 +155,33 @@ export default function ComplaintForm({ onSuccess }) {
       </div>
 
       <div>
-        <label htmlFor="category" className="complaint-form-label">
-          Category *
+        <label htmlFor="modelName" className="complaint-form-label">
+          Model Name
         </label>
         <input
           type="text"
-          id="category"
-          name="category"
-          value={formData.category}
+          id="modelName"
+          name="modelName"
+          value={formData.modelName}
           onChange={handleChange}
-          className={`complaint-form-input ${validationErrors.category ? "border-red-500" : ""}`}
-          placeholder="e.g., Product, Service, Billing"
-          required
+          className="complaint-form-input"
+          placeholder="Product or model name"
         />
-        {validationErrors.category && (
-          <p className="complaint-form-error">{validationErrors.category}</p>
-        )}
+      </div>
+
+      <div>
+        <label htmlFor="serviceCategoryName" className="complaint-form-label">
+          Service Category
+        </label>
+        <input
+          type="text"
+          id="serviceCategoryName"
+          name="serviceCategoryName"
+          value={formData.serviceCategoryName}
+          onChange={handleChange}
+          className="complaint-form-input"
+          placeholder="Installation, service, billing, etc."
+        />
       </div>
 
       <div>

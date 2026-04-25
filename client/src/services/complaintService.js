@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL  + "/api/complaints";
+import { getApiBaseUrl } from "../config/apiConfig";
+
+const BASE = `${getApiBaseUrl()}/complaints`;
 
 const getHeaders = (token) => ({
   ...(token && { Authorization: `Bearer ${token}` }),
@@ -55,11 +57,13 @@ export const fetchComplaints = async (
  */
 export const createComplaint = async (complainData, token) => {
   try {
-    // Ensure proper JSON serialization with correct headers
+    const isFormData = complainData instanceof FormData;
     const res = await fetch(`${BASE}`, {
       method: "POST",
-      headers: getHeaders(token),
-      body: JSON.stringify(complainData),
+      headers: isFormData
+        ? { ...(token && { Authorization: `Bearer ${token}` }) }
+        : getHeaders(token),
+      body: isFormData ? complainData : JSON.stringify(complainData),
     });
 
     if (!res.ok) {

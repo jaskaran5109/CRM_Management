@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { getApiBaseUrl } from "../../../config/apiConfig";
 
-const BASE = import.meta.env.VITE_API_URL  + "/api/role-statuses";
+const BASE = `${getApiBaseUrl()}/role-statuses`;
 
 // FETCH ALL ROLE STATUSES
 export const fetchAllRoleStatuses = createAsyncThunk(

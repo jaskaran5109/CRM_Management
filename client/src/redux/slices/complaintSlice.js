@@ -17,7 +17,7 @@ export const createComplaintAction = createAsyncThunk(
       const token = getState().auth.user?.token;
       const data = await createComplaint(formData, token);
       if (data?.message && data?.error) return rejectWithValue(data.message || "Failed");
-      return data;
+      return data?.data ?? data;
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
@@ -67,7 +67,7 @@ export const updateComplaintAction = createAsyncThunk(
       const token = getState().auth.user?.token;
       const data = await updateComplaint(id, updates, token);
       if (data?.message && data?.error) return rejectWithValue(data.message || "Failed");
-      return data;
+      return data?.data ?? data;
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
@@ -175,7 +175,7 @@ const complaintSlice = createSlice({
       .addCase(getComplaint.pending, pending)
       .addCase(getComplaint.fulfilled, (state, action) => {
         state.loading = false;
-        state.current = action.payload;
+        state.current = action.payload?.data ?? action.payload;
       })
       .addCase(getComplaint.rejected, rejected)
 

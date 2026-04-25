@@ -14,10 +14,16 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX
+        value: 150
       
       # Add your actual values in Render Environment section:
-      # MONGODB_URI
+      # MONGO_URI or MONGODB_URI
       # JWT_SECRET
+      # FRONTEND_URL
       # CORS_ORIGIN
+      # ADDITIONAL_CORS_ORIGINS
       # RESEND_API_KEY
-      # RESEND_FROM_EMAIL
+      # EMAIL_FROM

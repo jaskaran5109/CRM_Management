@@ -162,7 +162,7 @@ export default function AdminCXServiceCategories() {
   };
 
   return (
-    <div className="dashboard">
+    <div className="admin-page dashboard">
       <div className="dash-header">
         <div>
           <h2>Admin CX Service Categories</h2>

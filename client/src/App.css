@@ -1630,6 +1630,129 @@ body {
   color: #555;
 }
 
+/* Theme-safe shared overrides */
+.btn-primary,
+.btn-role,
+.btn-delete,
+.btn-outline {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-role {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.btn-delete {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.btn-outline {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-role:hover:not(:disabled),
+.btn-delete:hover:not(:disabled),
+.btn-outline:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard,
+.content-card,
+.page-card,
+.table-wrap,
+.top-products,
+.chart-card,
+.right-sidebar-modal,
+.cx-data-modal-box,
+.bulk-upload-modal,
+.preview-table-container,
+.complaint-detail,
+.complaint-card,
+.search-wrapper,
+.form-header,
+.complaint-form-wrapper {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.users-table,
+.data-table,
+.preview-table {
+  background: var(--table-bg);
+  color: var(--table-text);
+}
+
+.users-table th,
+.users-table td,
+.data-table th,
+.data-table td,
+.preview-table th,
+.preview-table td {
+  border-color: var(--table-border);
+  color: inherit;
+}
+
+.users-table thead th,
+.data-table thead th,
+.preview-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
+  z-index: 1;
+}
+
+.users-table tbody tr:hover td,
+.data-table tbody tr:hover td,
+.preview-table tbody tr:hover td {
+  background: var(--table-row-hover) !important;
+}
+
+.role-chip,
+.status-badge,
+.priority-badge {
+  border: 1px solid transparent;
+}
+
+.page-header h1,
+.page-header h2,
+.dash-header h2,
+.top-products h3,
+.chart-card h3 {
+  color: var(--text);
+}
+
+.page-header p,
+.dash-header .subtitle,
+.topbar-subtitle,
+.meta-label,
+.switch-text,
+.upload-note,
+.preview-note,
+.error-note {
+  color: var(--text-muted);
+}
+
 .profile-forms .card {
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);

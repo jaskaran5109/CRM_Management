@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../styles/PublicComplaintForm.css";
+import { createPublicComplaint } from "../services/publicComplaintService";
 
 export default function PublicComplaintForm() {
   const navigate = useNavigate();
@@ -51,17 +52,7 @@ export default function PublicComplaintForm() {
       }
 
       // Create complaint
-      const response = await fetch("/api/public/complaints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to create complaint");
-      }
+      const result = await createPublicComplaint(formData);
 
       toast.success("Complaint submitted successfully! Check your email for confirmation.");
       
@@ -79,7 +70,7 @@ export default function PublicComplaintForm() {
     <div className="complaint-form-container">
       <div className="complaint-form-wrapper">
         <div className="form-header">
-          <h1>Submit a Complaint</h1>
+          <h1 >Submit a Complaint</h1>
           <p>We're here to help. Please provide details about your complaint.</p>
         </div>
 

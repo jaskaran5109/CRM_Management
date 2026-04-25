@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import path from 'path';
 import 'dotenv/config';
+import { getAppConfig } from './config/appConfig.js';
 
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
@@ -21,20 +22,27 @@ import complaintsRoutes from "./routes/complaints.js";
 import publicComplaintsRoutes from "./routes/publicComplaints.js";
 
 const app = express();
+const config = getAppConfig();
 
-// CORS Configuration for all environments
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.CORS_ORIGIN,
-].filter(Boolean); // Remove undefined values
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (config.corsOrigins.length === 0 || config.corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
 app.use(helmet());
-app.use(cors({ 
-  origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Sanitize request objects against query selector injection without overwriting readonly getters (Express 5)
@@ -79,11 +87,14 @@ app.use((req, res, next) => {
 });
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 150,
+  windowMs: config.rateLimitWindowMs,
+  max: config.rateLimitMax,
   message: "Too many requests from this IP, please try again later",
 });
-app.use(limiter);
+
+if (config.rateLimitEnabled) {
+  app.use(limiter);
+}
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
@@ -103,13 +114,29 @@ app.use("/api/dashboard", dashboardRoutes);
 
 
 app.get('/', (req, res) => res.json({ message: 'MERN Auth API running' }));
+app.get('/health', (req, res) =>
+  res.json({
+    status: 'ok',
+    env: config.nodeEnv,
+    timestamp: new Date().toISOString(),
+  }),
+);
+
+app.use((err, req, res, next) => {
+  if (err?.message?.startsWith("CORS blocked")) {
+    return res.status(403).json({ message: err.message });
+  }
+
+  console.error("Unhandled server error:", err);
+  return res.status(500).json({ message: "Internal server error" });
+});
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(config.mongoUri)
   .then(() => {
     console.log('MongoDB connected');
-    app.listen(process.env.PORT || 5000, () =>
-      console.log(`Server running on port ${process.env.PORT || 5000}`)
+    app.listen(config.port, () =>
+      console.log(`Server running on port ${config.port}`)
     );
   })
   .catch(err => console.error('MongoDB error:', err));

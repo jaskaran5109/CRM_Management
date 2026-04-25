@@ -188,7 +188,7 @@ export const listComplaints = async (req, res) => {
 
     if (category) {
       const categories = category.split(",").map((c) => c.trim());
-      filter.category = { $in: categories };
+      filter.serviceCategoryName = { $in: categories };
     }
 
     if (assignedTo) {
@@ -204,7 +204,10 @@ export const listComplaints = async (req, res) => {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
+        { customerName: { $regex: search, $options: "i" } },
+        { customerEmail: { $regex: search, $options: "i" } },
+        { modelName: { $regex: search, $options: "i" } },
+        { serviceCategoryName: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -618,7 +621,7 @@ export const getComplaintStats = async (req, res) => {
             { $sort: { _id: 1 } },
           ],
           byCategory: [
-            { $group: { _id: "$category", count: { $sum: 1 } } },
+            { $group: { _id: "$serviceCategoryName", count: { $sum: 1 } } },
             { $sort: { _id: 1 } },
           ],
           total: [{ $count: "count" }],

@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import "../styles/TrackComplaint.css";
+import {
+  addPublicComment,
+  getPublicComplaintDetail,
+  trackComplaintsByPhone,
+} from "../services/publicComplaintService";
 
 export default function TrackComplaint() {
   const [searchLoading, setSearchLoading] = useState(false);
@@ -43,18 +48,10 @@ export default function TrackComplaint() {
     setSearchLoading(true);
 
     try {
-      const params = new URLSearchParams();
-      params.append("customerPhone", searchForm.customerPhone);
-      if (searchForm.customerEmail) {
-        params.append("customerEmail", searchForm.customerEmail);
-      }
-
-      const response = await fetch(`/api/public/complaints?${params.toString()}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch complaints");
-      }
+      const result = await trackComplaintsByPhone(
+        searchForm.customerPhone,
+        searchForm.customerEmail,
+      );
 
       setComplaints(result.data || []);
       setSelectedComplaint(null);
@@ -79,20 +76,12 @@ export default function TrackComplaint() {
     
     // Fetch comments
     try {
-      const params = new URLSearchParams();
-      params.append("customerPhone", searchForm.customerPhone);
-      if (searchForm.customerEmail) {
-        params.append("customerEmail", searchForm.customerEmail);
-      }
-
-      const response = await fetch(
-        `/api/public/complaints/${complaint._id}?${params.toString()}`
+      const result = await getPublicComplaintDetail(
+        complaint._id,
+        searchForm.customerPhone,
+        searchForm.customerEmail,
       );
-      const result = await response.json();
-
-      if (response.ok) {
-        setComments(result.comments || []);
-      }
+      setComments(result.comments || []);
     } catch (error) {
       console.error("Error fetching comments:", error);
     }
@@ -110,24 +99,12 @@ export default function TrackComplaint() {
     setCommentLoading(true);
 
     try {
-      const response = await fetch(
-        `/api/public/complaints/${selectedComplaint._id}/comments`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customerPhone: searchForm.customerPhone,
-            customerEmail: searchForm.customerEmail,
-            message: commentText,
-          }),
-        }
+      const result = await addPublicComment(
+        selectedComplaint._id,
+        searchForm.customerPhone,
+        searchForm.customerEmail,
+        commentText,
       );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to add comment");
-      }
 
       setComments((prev) => [...prev, result.data]);
       setCommentText("");
