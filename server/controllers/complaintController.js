@@ -4,7 +4,9 @@ import ComplaintComment from "../models/ComplaintComment.js";
 import CXModel from "../models/CXModel.js";
 import CXServiceCategory from "../models/CXServiceCategory.js";
 import User from "../models/User.js";
+import UserRole from "../models/UserRole.js";
 import { Resend } from "resend";
+import mongoose from "mongoose";
 import {
   sendComplaintConfirmationEmail,
   sendStatusUpdateEmail,
@@ -19,6 +21,63 @@ import {
 } from "../utils/complaintPermissionUtils.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+const getRoleIds = (value) =>
+  (value || [])
+    .map((item) => (typeof item === "string" ? item : String(item?._id || item)))
+    .filter(Boolean);
+
+const getReferenceId = (value) =>
+  typeof value === "string" ? value : String(value?._id || value || "");
+
+const normalizeRoleName = (value = "") =>
+  String(value).trim().toLowerCase().replace(/[\s_-]+/g, " ");
+
+const hasComplaintAccess = (complaint, user) => {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+
+  const complaintRoleIds = getRoleIds(complaint?.role);
+  const userRoleIds = getRoleIds(user?.userRole);
+  const isCreator =
+    complaint?.createdBy && getReferenceId(complaint.createdBy) === String(user._id);
+  const isAssigned =
+    complaint?.assignedTo && getReferenceId(complaint.assignedTo) === String(user._id);
+
+  return (
+    isCreator ||
+    isAssigned ||
+    complaintRoleIds.some((roleId) => userRoleIds.includes(roleId))
+  );
+};
+
+const getNonTellyRoleIds = (roles, tellyCallingRoleId) =>
+  getRoleIds(roles).filter((roleId) => roleId !== tellyCallingRoleId);
+
+const getPrimaryRoleId = (roleValue) => {
+  if (Array.isArray(roleValue)) {
+    return roleValue.find(Boolean) || "";
+  }
+  return roleValue || "";
+};
+
+const formatRoleChangeValue = (roleIds) => roleIds.map(String);
+
+const resolveInitialComplaintRole = async () => {
+  const tellyCallingRoleId = await findTellyCallingRoleId();
+
+  if (!tellyCallingRoleId) {
+    return {
+      error: "Telly calling role must exist before creating complaints",
+      roleIds: [],
+    };
+  }
+
+  return {
+    error: null,
+    roleIds: [tellyCallingRoleId],
+  };
+};
 
 /**
  * Create a new complaint
@@ -110,7 +169,12 @@ export const createComplaint = async (req, res) => {
       normalizedStatus,
     );
     const complaintRoleFields = extractComplaintRoleFields(permissionSnapshot);
-    const tellyCallingRoleId = await findTellyCallingRoleId();
+    const initialComplaintRole = await resolveInitialComplaintRole();
+    if (initialComplaintRole.error) {
+      return res.status(400).json({
+        message: initialComplaintRole.error,
+      });
+    }
 
     // Create complaint
     const complaint = await Complaint.create({
@@ -127,9 +191,7 @@ export const createComplaint = async (req, res) => {
       serviceCategoryName: resolvedServiceCategoryName,
       createdBy: req.user?._id || null, // null for public complaints, user id for admin
       assignedTo: assignedTo || null,
-      role: tellyCallingRoleId
-        ? [tellyCallingRoleId]
-        : complaintRoleFields.role,
+      role: initialComplaintRole.roleIds,
       nextRoles: complaintRoleFields.nextRoles,
       internalNotes,
       slaDeadline: slaDeadline ? new Date(slaDeadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -361,11 +423,7 @@ export const getComplaint = async (req, res) => {
       });
     }
 
-    // Authorization check
-    if (
-      req.user.role === "user" &&
-      (!complaint.createdBy || !complaint.createdBy._id?.equals(req.user._id))
-    ) {
+    if (!hasComplaintAccess(complaint, req.user)) {
       return res.status(403).json({
         message: "Not authorized to view this complaint",
       });
@@ -415,13 +473,28 @@ export const updateComplaint = async (req, res) => {
       });
     }
 
-    // Authorization check
-    if (
-      req.user.role === "user" &&
-      (!complaint.createdBy || !complaint.createdBy.equals(req.user._id))
-    ) {
+    if (!hasComplaintAccess(complaint, req.user)) {
       return res.status(403).json({
         message: "Not authorized to update this complaint",
+      });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    const isAgent = req.user.role === "agent";
+
+    if ((("role" in updateData) || ("assignedTo" in updateData)) && !isAdmin) {
+      return res.status(403).json({
+        message: "Only admins can update complaint role and assignment",
+      });
+    }
+
+    if (
+      (("priority" in updateData) || ("status" in updateData)) &&
+      !isAdmin &&
+      !isAgent
+    ) {
+      return res.status(403).json({
+        message: "Only admins and agents can update complaint status or priority",
       });
     }
 
@@ -443,7 +516,6 @@ export const updateComplaint = async (req, res) => {
       "serviceCategoryName",
       "priority",
       "status",
-      "assignedTo",
       "slaDeadline",
     ];
 
@@ -469,9 +541,6 @@ export const updateComplaint = async (req, res) => {
         }
       }
     }
-
-    const finalFilter =
-      andFilters.length > 0 ? { ...filter, $and: andFilters } : filter;
 
     if ("modelId" in updateData) {
       if (updateData.modelId) {
@@ -524,9 +593,11 @@ export const updateComplaint = async (req, res) => {
     }
 
     // Handle internal notes addition
-    if (updateData.addInternalNote) {
+    const internalNoteMessage =
+      updateData.addInternalNote?.trim?.() || updateData.internalNote?.trim?.() || "";
+    if (internalNoteMessage) {
       complaint.internalNotes.push({
-        note: updateData.addInternalNote,
+        note: internalNoteMessage,
         createdBy: req.user._id,
       });
       changes.push({
@@ -536,6 +607,120 @@ export const updateComplaint = async (req, res) => {
       });
     }
 
+    if ("role" in updateData || "assignedTo" in updateData) {
+      const tellyCallingRoleId = await findTellyCallingRoleId();
+      const currentRoleIds = getRoleIds(complaint.role);
+      const requestedRoleId = getPrimaryRoleId(updateData.role);
+      let resolvedRoleIds = currentRoleIds;
+
+      if ("role" in updateData) {
+        if (!requestedRoleId) {
+          return res.status(400).json({
+            message: "Complaint role is required",
+          });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(requestedRoleId)) {
+          return res.status(400).json({
+            message: "Invalid complaint role",
+          });
+        }
+
+        const requestedRole = await UserRole.findById(requestedRoleId).select("name").lean();
+        if (!requestedRole) {
+          return res.status(404).json({
+            message: "Complaint role not found",
+          });
+        }
+
+        if (
+          requestedRoleId === tellyCallingRoleId ||
+          normalizeRoleName(requestedRole.name) === "telly calling"
+        ) {
+          return res.status(400).json({
+            message: "Telly calling role cannot be assigned to complaints",
+          });
+        }
+
+        resolvedRoleIds = [requestedRoleId];
+      }
+
+      if ("assignedTo" in updateData) {
+        if (!updateData.assignedTo) {
+          const oldAssignedTo = complaint.assignedTo ? String(complaint.assignedTo) : null;
+          complaint.assignedTo = null;
+          if (oldAssignedTo !== null) {
+            changes.push({
+              fieldName: "assignedTo",
+              oldValue: oldAssignedTo,
+              newValue: null,
+            });
+          }
+        } else {
+          if (!mongoose.Types.ObjectId.isValid(updateData.assignedTo)) {
+            return res.status(400).json({
+              message: "Invalid assigned user",
+            });
+          }
+
+          const assignedUser = await User.findById(updateData.assignedTo)
+            .populate("userRole", "name")
+            .select("name email userRole")
+            .lean();
+
+          if (!assignedUser) {
+            return res.status(404).json({
+              message: "Assigned user not found",
+            });
+          }
+
+          const assignedUserRoleIds = getNonTellyRoleIds(
+            assignedUser.userRole,
+            tellyCallingRoleId,
+          );
+
+          if (assignedUserRoleIds.length === 0) {
+            return res.status(400).json({
+              message: "Assigned user must have at least one non-telly-calling role",
+            });
+          }
+
+          if (resolvedRoleIds.length > 0) {
+            if (!assignedUserRoleIds.includes(resolvedRoleIds[0])) {
+              return res.status(400).json({
+                message: "Assigned user does not belong to the selected complaint role",
+              });
+            }
+          } else {
+            const preferredRoleId =
+              currentRoleIds.find((roleId) => assignedUserRoleIds.includes(roleId)) ||
+              assignedUserRoleIds[0];
+            resolvedRoleIds = preferredRoleId ? [preferredRoleId] : [];
+          }
+
+          const oldAssignedTo = complaint.assignedTo ? String(complaint.assignedTo) : null;
+          if (oldAssignedTo !== String(updateData.assignedTo)) {
+            complaint.assignedTo = updateData.assignedTo;
+            changes.push({
+              fieldName: "assignedTo",
+              oldValue: oldAssignedTo,
+              newValue: String(updateData.assignedTo),
+            });
+          }
+        }
+      }
+
+      const oldRoleIds = getRoleIds(complaint.role);
+      if (JSON.stringify(oldRoleIds) !== JSON.stringify(resolvedRoleIds)) {
+        complaint.role = resolvedRoleIds;
+        changes.push({
+          fieldName: "role",
+          oldValue: formatRoleChangeValue(oldRoleIds),
+          newValue: formatRoleChangeValue(resolvedRoleIds),
+        });
+      }
+    }
+
     if ("status" in updateData && updateData.status !== undefined) {
       complaint.permissionSnapshot = await buildComplaintPermissionSnapshot(
         complaint.status,
@@ -543,8 +728,10 @@ export const updateComplaint = async (req, res) => {
       const complaintRoleFields = extractComplaintRoleFields(
         complaint.permissionSnapshot,
       );
-      complaint.role = complaintRoleFields.role;
       complaint.nextRoles = complaintRoleFields.nextRoles;
+      if (getRoleIds(complaint.role).length === 0) {
+        complaint.role = complaintRoleFields.role;
+      }
     }
 
     // Save updated complaint
@@ -662,16 +849,10 @@ export const deleteComplaint = async (req, res) => {
       });
     }
 
-    // Authorization check - only creator or admin
-    if (
-      req.user.role === "user" &&
-      (!complaint.createdBy || !complaint.createdBy.equals(req.user._id))
-    ) {
-      if (req.user.role !== "admin") {
-        return res.status(403).json({
-          message: "Not authorized to delete this complaint",
-        });
-      }
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "Not authorized to delete this complaint",
+      });
     }
 
     // Delete complaint
@@ -707,6 +888,19 @@ export const deleteComplaint = async (req, res) => {
 export const getComplaintHistory = async (req, res) => {
   try {
     const { id } = req.params;
+    const complaint = await Complaint.findById(id).select("createdBy assignedTo role");
+
+    if (!complaint) {
+      return res.status(404).json({
+        message: "Complaint not found",
+      });
+    }
+
+    if (!hasComplaintAccess(complaint, req.user)) {
+      return res.status(403).json({
+        message: "Not authorized to view complaint history",
+      });
+    }
 
     const history = await ComplaintHistory.find({
       complaintId: id,
@@ -813,6 +1007,12 @@ export const addComplaintComment = async (req, res) => {
       });
     }
 
+    if (!hasComplaintAccess(complaint, req.user)) {
+      return res.status(403).json({
+        message: "Not authorized to comment on this complaint",
+      });
+    }
+
     // Create comment
     const comment = await ComplaintComment.create({
       complaintId: id,
@@ -869,6 +1069,12 @@ export const getComplaintComments = async (req, res) => {
       });
     }
 
+    if (!hasComplaintAccess(complaint, req.user)) {
+      return res.status(403).json({
+        message: "Not authorized to view complaint comments",
+      });
+    }
+
     // Build filter for comments
     const filter = { complaintId: id };
     if (!includeInternal || includeInternal === "false") {
@@ -902,6 +1108,12 @@ export const assignComplaint = async (req, res) => {
     const { id } = req.params;
     const { assignedToUserId } = req.body;
 
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "Only admins can assign complaints",
+      });
+    }
+
     // Validate input
     if (!assignedToUserId) {
       return res.status(400).json({
@@ -918,18 +1130,36 @@ export const assignComplaint = async (req, res) => {
     }
 
     // Find user
-    const assignedUser = await User.findById(assignedToUserId).select("name email");
+    const assignedUser = await User.findById(assignedToUserId)
+      .populate("userRole", "name")
+      .select("name email userRole");
     if (!assignedUser) {
       return res.status(404).json({
         message: "User not found",
       });
     }
 
+    const tellyCallingRoleId = await findTellyCallingRoleId();
+    const assignedUserRoleIds = getNonTellyRoleIds(
+      assignedUser.userRole,
+      tellyCallingRoleId,
+    );
+
+    if (assignedUserRoleIds.length === 0) {
+      return res.status(400).json({
+        message: "Assigned user must have at least one non-telly-calling role",
+      });
+    }
+
     // Store old value
     const oldAssignedTo = complaint.assignedTo;
+    const oldRoleIds = getRoleIds(complaint.role);
 
     // Update assignment
     complaint.assignedTo = assignedToUserId;
+    if (!oldRoleIds.some((roleId) => assignedUserRoleIds.includes(roleId))) {
+      complaint.role = [assignedUserRoleIds[0]];
+    }
     await complaint.save();
 
     // Log in history
@@ -994,6 +1224,12 @@ export const updateComplaintStatus = async (req, res) => {
       });
     }
 
+    if (!hasComplaintAccess(complaint, req.user)) {
+      return res.status(403).json({
+        message: "Not authorized to update this complaint status",
+      });
+    }
+
     const oldStatus = complaint.status;
     const newStatus = status.toLowerCase();
 
@@ -1003,8 +1239,10 @@ export const updateComplaintStatus = async (req, res) => {
     const complaintRoleFields = extractComplaintRoleFields(
       complaint.permissionSnapshot,
     );
-    complaint.role = complaintRoleFields.role;
     complaint.nextRoles = complaintRoleFields.nextRoles;
+    if (getRoleIds(complaint.role).length === 0) {
+      complaint.role = complaintRoleFields.role;
+    }
     await complaint.save();
 
     // Log in history

@@ -271,6 +271,23 @@
   font-weight: 600;
 }
 
+.complaint-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.dark .complaint-role-pill {
+  background: #0c4a6e;
+  color: #bae6fd;
+}
+
 /* Status Badge */
 .status-badge {
   display: inline-block;
@@ -480,6 +497,28 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   opacity: 0.8;
+}
+
+.complaint-routing-note {
+  margin: 0 0 10px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.complaint-routing-help {
+  margin: -2px 0 12px 0;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.dark .complaint-routing-note {
+  background: #172554;
+  color: #bfdbfe;
 }
 
 .form-row-two {

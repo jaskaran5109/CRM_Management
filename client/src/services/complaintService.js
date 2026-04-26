@@ -112,7 +112,10 @@ export const updateComplaint = async (id, updates, token) => {
       body: isFormData ? updates : JSON.stringify(updates),
     });
 
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.message || `HTTP error! status: ${res.status}`);
+    }
     return await res.json();
   } catch (error) {
     console.error("updateComplaint error:", error);

@@ -10,15 +10,14 @@ import {
 import { fetchComments, addComment } from "../services/complaintService";
 import ComplaintTimeline from "../components/complaints/ComplaintTimeline";
 import "./ComplaintDetail.css";
-import { fetchAllStatuses } from "../redux/slices/adminSlices/statusSlice";
 import { fetchAllUsers } from "../redux/slices/userSlice";
+import { fetchAllUserRoles } from "../redux/slices/adminSlices/userRoleSlice";
 
 const getStatusBadge = (status) => {
   const badges = {
-    open: "complaint-detail-status-open",
+    pending: "complaint-detail-status-open",
     in_progress: "complaint-detail-status-in_progress",
     resolved: "complaint-detail-status-resolved",
-    closed: "complaint-detail-status-closed",
   };
   return badges[status] || "complaint-detail-status-closed";
 };
@@ -32,14 +31,33 @@ const getPriorityBadge = (priority) => {
   return badges[priority] || "complaint-detail-priority-low";
 };
 
+const getEntityId = (value) =>
+  typeof value === "string" ? value : value?._id || "";
+
+const getRoleIds = (roles = []) =>
+  roles
+    .map((role) => (typeof role === "string" ? role : role?._id || ""))
+    .filter(Boolean);
+
+const getRoleNames = (roles = []) =>
+  roles
+    .map((role) => (typeof role === "string" ? role : role?.name || ""))
+    .filter(Boolean);
+
+const normalizeRoleName = (value = "") =>
+  String(value).trim().toLowerCase().replace(/[\s_-]+/g, " ");
+
 export default function ComplaintDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { current, history, loading, error, success } = useSelector(
+  const { current, loading, error, success } = useSelector(
     (state) => state.complaints,
   );
   const { user } = useSelector((state) => state.auth);
+  const { users = [] } = useSelector((state) => state.users);
+  const { list: userRoles = [] } = useSelector((state) => state.userRoles);
+
   const [comment, setComment] = useState("");
   const [commentList, setCommentList] = useState([]);
   const [status, setStatus] = useState("");
@@ -47,12 +65,42 @@ export default function ComplaintDetail() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [priority, setPriority] = useState("");
   const [assignedUser, setAssignedUser] = useState("");
-  const { users } = useSelector((state) => state.users);    
+  const [complaintRole, setComplaintRole] = useState("");
+
+  const isAdmin = user?.role === "admin";
+  const canManageWorkflow = isAdmin || user?.role === "agent";
+  const tellyCallingRole = userRoles.find(
+    (role) => normalizeRoleName(role?.name) === "telly calling",
+  );
+  const tellyCallingRoleId = tellyCallingRole?._id || "";
+  const selectableRoles = userRoles.filter(
+    (role) => role?._id && role._id !== tellyCallingRoleId,
+  );
+
+  const getAssignableRoleIdsForUser = (selectedUser) =>
+    (selectedUser?.userRole || [])
+      .map((role) => (typeof role === "string" ? role : role?._id || ""))
+      .filter((roleId) => roleId && roleId !== tellyCallingRoleId);
+
+  const eligibleUsers = users.filter((candidateUser) => {
+    const candidateRoleIds = getAssignableRoleIdsForUser(candidateUser);
+    if (candidateRoleIds.length === 0) {
+      return false;
+    }
+    if (!complaintRole) {
+      return true;
+    }
+    return candidateRoleIds.includes(complaintRole);
+  });
 
   useEffect(() => {
     dispatch(getComplaint({ id }));
     dispatch(fetchComplaintHistoryAction({ id }));
-    dispatch(fetchAllUsers());
+
+    if (isAdmin) {
+      dispatch(fetchAllUsers());
+      dispatch(fetchAllUserRoles());
+    }
 
     const loadComments = async () => {
       setCommentsLoading(true);
@@ -60,26 +108,23 @@ export default function ComplaintDetail() {
         const token = user?.token;
         if (!token) return;
         const data = await fetchComments(id, token);
-        setCommentList(data);
+        setCommentList(data?.data || []);
       } catch (err) {
         console.error("Failed to load comments:", err);
       } finally {
         setCommentsLoading(false);
       }
     };
+
     loadComments();
-  }, [dispatch, id, user?.token]);
+  }, [dispatch, id, user?.token, isAdmin]);
 
   useEffect(() => {
-    if (current) {
-      setStatus(current.status);
-    }
-    if(current?.priority) {
-      setPriority(current.priority);
-    }
-    if(current?.assignedTo?._id) {
-      setAssignedUser(current.assignedTo?._id || "");
-    }
+    if (!current) return;
+    setStatus(current.status || "");
+    setPriority(current.priority || "");
+    setAssignedUser(getEntityId(current.assignedTo));
+    setComplaintRole(getRoleIds(current.role)[0] || "");
   }, [current]);
 
   useEffect(() => {
@@ -99,7 +144,12 @@ export default function ComplaintDetail() {
 
   const handleInternalNote = async () => {
     if (!internalNote.trim()) return;
-    await dispatch(updateComplaintAction({ id, updates: { internalNote } }));
+    await dispatch(
+      updateComplaintAction({
+        id,
+        updates: { addInternalNote: internalNote.trim() },
+      }),
+    );
     setInternalNote("");
     dispatch(fetchComplaintHistoryAction({ id }));
   };
@@ -115,10 +165,10 @@ export default function ComplaintDetail() {
     const token = user?.token;
     try {
       const data = await addComment(id, { message: comment }, token);
-      if (data._id) {
+      if (data?.data?._id) {
         setComment("");
         const comments = await fetchComments(id, token);
-        setCommentList(comments);
+        setCommentList(comments?.data || []);
         dispatch(fetchComplaintHistoryAction({ id }));
       }
     } catch (err) {
@@ -126,10 +176,76 @@ export default function ComplaintDetail() {
     }
   };
 
-  const handleAssignUser = async () => {
-    if (!assignedUser) return;
+  const handleComplaintRoleChange = (event) => {
+    const nextRoleId = event.target.value;
+    setComplaintRole(nextRoleId);
+
+    if (!assignedUser) {
+      return;
+    }
+
+    const selectedAssignedUser = users.find((candidate) => candidate._id === assignedUser);
+    if (!selectedAssignedUser) {
+      setAssignedUser("");
+      return;
+    }
+
+    const selectedAssignedUserRoleIds = getAssignableRoleIdsForUser(selectedAssignedUser);
+    if (nextRoleId && !selectedAssignedUserRoleIds.includes(nextRoleId)) {
+      setAssignedUser("");
+    }
+  };
+
+  const handleAssignedUserChange = (event) => {
+    const nextAssignedUserId = event.target.value;
+    setAssignedUser(nextAssignedUserId);
+
+    if (!nextAssignedUserId) {
+      return;
+    }
+
+    const selectedAssignedUser = users.find((candidate) => candidate._id === nextAssignedUserId);
+    if (!selectedAssignedUser) {
+      return;
+    }
+
+    const selectedAssignedUserRoleIds = getAssignableRoleIdsForUser(selectedAssignedUser);
+    if (selectedAssignedUserRoleIds.length === 0) {
+      setComplaintRole("");
+      return;
+    }
+
+    if (complaintRole && selectedAssignedUserRoleIds.includes(complaintRole)) {
+      return;
+    }
+
+    const currentComplaintRoleId = getRoleIds(current?.role)[0] || "";
+    const fallbackRoleId =
+      selectedAssignedUserRoleIds.find((roleId) => roleId === currentComplaintRoleId) ||
+      selectedAssignedUserRoleIds[0];
+    setComplaintRole(fallbackRoleId);
+  };
+
+  const handleRoleAssignmentUpdate = async () => {
+    if (!complaintRole) return;
+
+    const currentComplaintRoleId = getRoleIds(current?.role)[0] || "";
+    const currentAssignedUserId = getEntityId(current?.assignedTo);
+    if (
+      complaintRole === currentComplaintRoleId &&
+      assignedUser === currentAssignedUserId
+    ) {
+      return;
+    }
+
     await dispatch(
-      updateComplaintAction({ id, updates: { assignedTo: assignedUser } }),
+      updateComplaintAction({
+        id,
+        updates: {
+          role: complaintRole,
+          assignedTo: assignedUser || null,
+        },
+      }),
     );
     dispatch(fetchComplaintHistoryAction({ id }));
   };
@@ -206,7 +322,6 @@ export default function ComplaintDetail() {
 
   return (
     <div className="complaint-detail-container">
-      {/* Header */}
       <div className="complaint-detail-header">
         <button
           onClick={() => navigate(-1)}
@@ -266,9 +381,7 @@ export default function ComplaintDetail() {
       )}
 
       <div className="complaint-detail-grid">
-        {/* Main Content */}
         <div className="complaint-detail-main">
-          {/* Complaint Details */}
           <div className="complaint-detail-card">
             <h2 className="complaint-detail-card-title">Details</h2>
             <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -287,6 +400,12 @@ export default function ComplaintDetail() {
                 <span className="complaint-detail-meta-label">Created by:</span>
                 <span className="complaint-detail-meta-value">
                   {current.createdBy?.name || "Unknown"}
+                </span>
+              </div>
+              <div className="complaint-detail-meta-item">
+                <span className="complaint-detail-meta-label">Complaint role:</span>
+                <span className="complaint-detail-meta-value">
+                  {getRoleNames(current.role).join(", ") || "-"}
                 </span>
               </div>
               {current.assignedTo && (
@@ -308,31 +427,32 @@ export default function ComplaintDetail() {
             </div>
           </div>
 
-          {/* Comments */}
           <div className="complaint-detail-card">
             <h2 className="complaint-detail-card-title">Comments</h2>
             <div className="complaint-detail-comments">
               {commentsLoading ? (
                 <div className="complaint-detail-loading">
-                  {[...Array(2)].map((_, i) => (
-                    <div key={i} className="complaint-detail-loading-item">
+                  {[...Array(2)].map((_, index) => (
+                    <div key={index} className="complaint-detail-loading-item">
                       <div className="complaint-detail-loading-header"></div>
                       <div className="complaint-detail-loading-content"></div>
                     </div>
                   ))}
                 </div>
               ) : commentList.length > 0 ? (
-                commentList.map((c) => (
-                  <div key={c._id} className="complaint-detail-comment">
+                commentList.map((commentItem) => (
+                  <div key={commentItem._id} className="complaint-detail-comment">
                     <div className="complaint-detail-comment-header">
                       <span className="complaint-detail-comment-author">
-                        {c.userId?.name || "Unknown"}
+                        {commentItem.userId?.name || "Unknown"}
                       </span>
                       <span className="complaint-detail-comment-time">
-                        {new Date(c.createdAt).toLocaleString()}
+                        {new Date(commentItem.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="complaint-detail-comment-text">{c.message}</p>
+                    <p className="complaint-detail-comment-text">
+                      {commentItem.message}
+                    </p>
                   </div>
                 ))
               ) : (
@@ -350,7 +470,7 @@ export default function ComplaintDetail() {
               <textarea
                 id="comment"
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(event) => setComment(event.target.value)}
                 rows={3}
                 className="complaint-detail-comment-input"
                 placeholder="Write your comment here..."
@@ -366,26 +486,23 @@ export default function ComplaintDetail() {
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className="complaint-detail-sidebar">
-          {/* Update Status */}
-          {(user?.role === "admin" || user?.role === "agent") && (
+          {canManageWorkflow && (
             <div className="complaint-detail-card">
               <h3 className="complaint-detail-card-title">Update Status</h3>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(event) => setStatus(event.target.value)}
                 className="complaint-detail-select"
               >
-                <option value="">All Statuses</option>
-                <option value="open">Open</option>
+                <option value="">Select status</option>
+                <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
                 <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
               </select>
               <button
                 onClick={handleStatusUpdate}
-                disabled={!status}
+                disabled={!status || status === current.status}
                 className="complaint-detail-btn complaint-detail-btn-primary"
               >
                 Update Status
@@ -393,24 +510,22 @@ export default function ComplaintDetail() {
             </div>
           )}
 
-          {/* Update Priority */}
-          {(user?.role === "admin" || user?.role === "agent") && (
+          {canManageWorkflow && (
             <div className="complaint-detail-card">
               <h3 className="complaint-detail-card-title">Update Priority</h3>
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
+                onChange={(event) => setPriority(event.target.value)}
                 className="complaint-detail-select"
               >
-                <option value="">Select Priority</option>
+                <option value="">Select priority</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
-                <option value="urgent">Urgent</option>
               </select>
               <button
                 onClick={handlePriorityUpdate}
-                disabled={!priority}
+                disabled={!priority || priority === current.priority}
                 className="complaint-detail-btn complaint-detail-btn-primary"
               >
                 Update Priority
@@ -418,39 +533,64 @@ export default function ComplaintDetail() {
             </div>
           )}
 
-          {/* Assign User */}
-          {(user?.role === "admin" || user?.role === "agent") && (
+          {isAdmin && (
             <div className="complaint-detail-card">
-              <h3 className="complaint-detail-card-title">Assign User</h3>
-              <select
-                value={assignedUser}
-                onChange={(e) => setAssignedUser(e.target.value)}
-                className="complaint-detail-select"
-              >
-                <option value="">Select User</option>
-                {users?.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleAssignUser}
-                disabled={!assignedUser}
-                className="complaint-detail-btn complaint-detail-btn-primary"
-              >
-                Assign User
-              </button>
+              <h3 className="complaint-detail-card-title">Role and Assignment</h3>
+              <div className="complaint-detail-form-stack">
+                <select
+                  value={complaintRole}
+                  onChange={handleComplaintRoleChange}
+                  className="complaint-detail-select"
+                >
+                  <option value="">Select complaint role</option>
+                  {selectableRoles.map((role) => (
+                    <option key={role._id} value={role._id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={assignedUser}
+                  onChange={handleAssignedUserChange}
+                  className="complaint-detail-select"
+                  disabled={!complaintRole && eligibleUsers.length === 0}
+                >
+                  <option value="">Unassigned</option>
+                  {eligibleUsers.map((candidateUser) => (
+                    <option key={candidateUser._id} value={candidateUser._id}>
+                      {candidateUser.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="complaint-detail-helper-text">
+                  Complaints are visible to users mapped to the selected complaint role.
+                </p>
+                {complaintRole && eligibleUsers.length === 0 && (
+                  <p className="complaint-detail-warning-text">
+                    No users are available for the selected complaint role.
+                  </p>
+                )}
+                <button
+                  onClick={handleRoleAssignmentUpdate}
+                  disabled={
+                    !complaintRole ||
+                    (complaintRole === (getRoleIds(current.role)[0] || "") &&
+                      assignedUser === getEntityId(current.assignedTo))
+                  }
+                  className="complaint-detail-btn complaint-detail-btn-primary"
+                >
+                  Save Role and Assignment
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Internal Notes */}
-          {(user?.role === "admin" || user?.role === "agent") && (
+          {canManageWorkflow && (
             <div className="complaint-detail-card">
               <h3 className="complaint-detail-card-title">Internal Notes</h3>
               <textarea
                 value={internalNote}
-                onChange={(e) => setInternalNote(e.target.value)}
+                onChange={(event) => setInternalNote(event.target.value)}
                 rows={3}
                 className="complaint-detail-comment-input"
                 placeholder="Add internal notes..."
@@ -465,7 +605,6 @@ export default function ComplaintDetail() {
             </div>
           )}
 
-          {/* Timeline */}
           <div className="complaint-detail-card">
             <h3 className="complaint-detail-card-title">Activity Timeline</h3>
             <ComplaintTimeline complaintId={id} />

@@ -15,6 +15,7 @@ import {
   deleteComplaintAction,
   clearComplaintStatus,
 } from "../redux/slices/complaintSlice";
+import { fetchAllUserRoles } from "../redux/slices/adminSlices/userRoleSlice";
 
 const initialForm = {
   customerName: "",
@@ -28,11 +29,26 @@ const initialForm = {
   serviceCategoryName: "",
   priority: "medium",
   status: "pending",
+  complaintRole: "",
 };
+
+const getRoleNames = (roles = []) =>
+  roles
+    .map((role) => (typeof role === "string" ? role : role?.name || ""))
+    .filter(Boolean);
+
+const getPrimaryRoleId = (roles = []) =>
+  (Array.isArray(roles) ? roles : [roles])
+    .map((role) => (typeof role === "string" ? role : role?._id || ""))
+    .find(Boolean) || "";
+
+const normalizeRoleName = (value = "") =>
+  String(value).trim().toLowerCase().replace(/[\s_-]+/g, " ");
 
 export default function Complaints() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { list: userRoles = [] } = useSelector((state) => state.userRoles);
 
   const isAdmin = user.role === "admin";
   const complaintState = useSelector((state) => state.complaints);
@@ -53,11 +69,25 @@ export default function Complaints() {
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const currentEditComplaint = complaints.find((item) => item._id === editId) || null;
+  const tellyCallingRole = userRoles.find(
+    (role) => normalizeRoleName(role?.name) === "telly calling",
+  );
+  const tellyCallingRoleId = tellyCallingRole?._id || "";
+  const roleOptions = userRoles.filter(
+    (role) => role?._id && role._id !== tellyCallingRoleId,
+  );
 
   useEffect(() => {
     dispatch(listComplaints({ queryString: "" }));
     return () => dispatch(clearComplaintStatus());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      dispatch(fetchAllUserRoles());
+    }
+  }, [dispatch, isAdmin]);
 
   useEffect(() => {
     const loadComplaintMetadata = async () => {
@@ -137,6 +167,7 @@ export default function Complaints() {
         "",
       priority: item.priority || "medium",
       status: item.status || "pending",
+      complaintRole: getPrimaryRoleId(item.role),
     });
     setShowSidebar(true);
   };
@@ -218,6 +249,11 @@ export default function Complaints() {
     };
 
     if (editId) {
+      const currentComplaintRoleId = getPrimaryRoleId(currentEditComplaint?.role);
+      if (isAdmin && form.complaintRole && form.complaintRole !== currentComplaintRoleId) {
+        payload.role = form.complaintRole;
+      }
+
       // For updates, use PATCH and only send changed fields
       const result = await dispatch(
         updateComplaintAction({
@@ -373,6 +409,7 @@ export default function Complaints() {
               <tr>
                 <th>Title</th>
                 <th>Customer</th>
+                <th>Complaint Role</th>
                 <th>Status</th>
                 <th>Priority</th>
                 <th>Created by</th>
@@ -386,6 +423,11 @@ export default function Complaints() {
                     <span className="text-bold">{item.title}</span>
                   </td>
                   <td>{item.customerName}</td>
+                  <td>
+                    <span className="complaint-role-pill">
+                      {getRoleNames(item.role).join(", ") || "Unassigned"}
+                    </span>
+                  </td>
                   <td>
                     <span
                       className={`status-badge status-${item.status?.replace(/_/g, "-")}`}
@@ -512,6 +554,28 @@ export default function Complaints() {
               {/* Complaint Details - 2 Column Layout */}
               <div className="form-section-group">
                 <h4>Complaint Details</h4>
+                {editId && isAdmin && (
+                  <div className="form-group">
+                    <label>Complaint Role</label>
+                    <select
+                      name="complaintRole"
+                      value={form.complaintRole}
+                      onChange={handleChange}
+                    >
+                      {form.complaintRole === tellyCallingRoleId && tellyCallingRoleId && (
+                        <option value={tellyCallingRoleId}>
+                          {tellyCallingRole?.name || "Telly Calling"} (current)
+                        </option>
+                      )}
+                      <option value="">Select complaint role</option>
+                      {roleOptions.map((role) => (
+                        <option key={role._id} value={role._id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="form-row-two">
                   <div className="form-group">
                     <label>Model</label>

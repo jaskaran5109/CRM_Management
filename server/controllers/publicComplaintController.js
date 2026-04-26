@@ -14,6 +14,22 @@ import {
   findTellyCallingRoleId,
 } from "../utils/complaintPermissionUtils.js";
 
+const resolveInitialComplaintRole = async () => {
+  const tellyCallingRoleId = await findTellyCallingRoleId();
+
+  if (!tellyCallingRoleId) {
+    return {
+      error: "Telly calling role must exist before creating complaints",
+      roleIds: [],
+    };
+  }
+
+  return {
+    error: null,
+    roleIds: [tellyCallingRoleId],
+  };
+};
+
 /**
  * Create a new complaint (public - no authentication required)
  */
@@ -73,7 +89,12 @@ export const createPublicComplaint = async (req, res) => {
 
     const permissionSnapshot = await buildComplaintPermissionSnapshot("pending");
     const complaintRoleFields = extractComplaintRoleFields(permissionSnapshot);
-    const tellyCallingRoleId = await findTellyCallingRoleId();
+    const initialComplaintRole = await resolveInitialComplaintRole();
+    if (initialComplaintRole.error) {
+      return res.status(400).json({
+        message: initialComplaintRole.error,
+      });
+    }
 
     // Check if customer exists in the system by phone number
     let linkedCustomer = null;
@@ -100,9 +121,7 @@ export const createPublicComplaint = async (req, res) => {
       linkedCustomer: linkedCustomer?._id || null,
       createdBy: null, // No user for public complaints
       assignedTo: null,
-      role: tellyCallingRoleId
-        ? [tellyCallingRoleId]
-        : complaintRoleFields.role,
+      role: initialComplaintRole.roleIds,
       nextRoles: complaintRoleFields.nextRoles,
       permissionSnapshot,
     });
