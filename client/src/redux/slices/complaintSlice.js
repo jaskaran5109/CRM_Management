@@ -69,6 +69,7 @@ export const updateComplaintAction = createAsyncThunk(
       if (data?.message && data?.error) return rejectWithValue(data.message || "Failed");
       return data?.data ?? data;
     } catch (err) {
+      debugger;
       return rejectWithValue(err.message || "Network error");
     }
   },

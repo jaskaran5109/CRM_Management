@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../styles/PublicComplaintForm.css";
-import { createPublicComplaint } from "../services/publicComplaintService";
+import {
+  createPublicComplaint,
+  fetchPublicComplaintModels,
+  fetchPublicComplaintServiceCategories,
+} from "../services/publicComplaintService";
 
 export default function PublicComplaintForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [metadataLoading, setMetadataLoading] = useState(true);
   const [models, setModels] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -23,9 +28,50 @@ export default function PublicComplaintForm() {
     priority: "medium",
   });
 
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        setMetadataLoading(true);
+        const [modelsData, categoriesData] = await Promise.all([
+          fetchPublicComplaintModels(),
+          fetchPublicComplaintServiceCategories(),
+        ]);
+        setModels(modelsData || []);
+        setCategories(categoriesData || []);
+      } catch (error) {
+        toast.error(error.message || "Failed to load complaint options");
+      } finally {
+        setMetadataLoading(false);
+      }
+    };
+
+    loadMetadata();
+  }, []);
+
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "modelId") {
+      const selectedModel = models.find((item) => item._id === value);
+      setFormData((prev) => ({
+        ...prev,
+        modelId: value,
+        modelName: selectedModel?.name || "",
+      }));
+      return;
+    }
+
+    if (name === "serviceCategoryId") {
+      const selectedCategory = categories.find((item) => item._id === value);
+      setFormData((prev) => ({
+        ...prev,
+        serviceCategoryId: value,
+        serviceCategoryName: selectedCategory?.name || "",
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -53,11 +99,16 @@ export default function PublicComplaintForm() {
 
       // Create complaint
       const result = await createPublicComplaint(formData);
+      const trackingId = result?.trackingId || result?.data?._id;
+
+      if (!trackingId) {
+        throw new Error("Complaint was created but tracking ID was not returned");
+      }
 
       toast.success("Complaint submitted successfully! Check your email for confirmation.");
       
       // Redirect to tracking page with tracking ID
-      navigate(`/track-complaint?id=${result.data._id}&phone=${formData.customerPhone}`);
+      navigate(`/track-complaint?id=${trackingId}&phone=${formData.customerPhone}`);
     } catch (error) {
       toast.error(error.message || "Failed to submit complaint");
       console.error("Submit error:", error);
@@ -139,27 +190,45 @@ export default function PublicComplaintForm() {
             {/* Row 1: Model, Service Category */}
             <div className="form-row-two">
               <div className="form-group">
-                <label htmlFor="modelName">Model</label>
-                <input
-                  type="text"
-                  id="modelName"
-                  name="modelName"
-                  value={formData.modelName}
+                <label htmlFor="modelId">Model</label>
+                <select
+                  id="modelId"
+                  name="modelId"
+                  value={formData.modelId}
                   onChange={handleChange}
-                  placeholder="Enter model name (e.g., Model X)"
-                />
+                  disabled={metadataLoading}
+                >
+                  <option value="">
+                    {metadataLoading ? "Loading models..." : "Select model"}
+                  </option>
+                  {models.map((model) => (
+                    <option key={model._id} value={model._id}>
+                      {model.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
-                <label htmlFor="serviceCategoryName">Service Category</label>
-                <input
-                  type="text"
-                  id="serviceCategoryName"
-                  name="serviceCategoryName"
-                  value={formData.serviceCategoryName}
+                <label htmlFor="serviceCategoryId">Service Category</label>
+                <select
+                  id="serviceCategoryId"
+                  name="serviceCategoryId"
+                  value={formData.serviceCategoryId}
                   onChange={handleChange}
-                  placeholder="Enter service category"
-                />
+                  disabled={metadataLoading}
+                >
+                  <option value="">
+                    {metadataLoading
+                      ? "Loading service categories..."
+                      : "Select service category"}
+                  </option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

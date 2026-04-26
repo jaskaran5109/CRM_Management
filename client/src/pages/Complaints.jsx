@@ -5,6 +5,10 @@ import { MdEdit, MdDelete, MdComment } from "react-icons/md";
 import "./Complaints.css";
 import CommentsModal from "../components/complaints/CommentsModal";
 import {
+  fetchPublicComplaintModels,
+  fetchPublicComplaintServiceCategories,
+} from "../services/publicComplaintService";
+import {
   listComplaints,
   createComplaintAction,
   updateComplaintAction,
@@ -18,7 +22,9 @@ const initialForm = {
   customerPhone: "",
   title: "",
   description: "",
+  modelId: "",
   modelName: "",
+  serviceCategoryId: "",
   serviceCategoryName: "",
   priority: "medium",
   status: "pending",
@@ -42,6 +48,9 @@ export default function Complaints() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(initialForm);
+  const [models, setModels] = useState([]);
+  const [serviceCategories, setServiceCategories] = useState([]);
+  const [metadataLoading, setMetadataLoading] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
@@ -49,6 +58,26 @@ export default function Complaints() {
     dispatch(listComplaints({ queryString: "" }));
     return () => dispatch(clearComplaintStatus());
   }, [dispatch]);
+
+  useEffect(() => {
+    const loadComplaintMetadata = async () => {
+      try {
+        setMetadataLoading(true);
+        const [modelsData, categoriesData] = await Promise.all([
+          fetchPublicComplaintModels(),
+          fetchPublicComplaintServiceCategories(),
+        ]);
+        setModels(modelsData || []);
+        setServiceCategories(categoriesData || []);
+      } catch (loadError) {
+        toast.error(loadError.message || "Failed to load complaint metadata");
+      } finally {
+        setMetadataLoading(false);
+      }
+    };
+
+    loadComplaintMetadata();
+  }, []);
   
   const onCommentAdded = useCallback(() => {
     dispatch(listComplaints({ queryString: "" }));
@@ -92,8 +121,20 @@ export default function Complaints() {
       customerPhone: item.customerPhone || "",
       title: item.title || "",
       description: item.description || "",
-      modelName: item.modelName || "",
-      serviceCategoryName: item.serviceCategoryName || "",
+      modelId:
+        (typeof item.modelId === "object" ? item.modelId?._id : item.modelId) || "",
+      modelName:
+        item.modelName || (typeof item.modelId === "object" ? item.modelId?.name : "") || "",
+      serviceCategoryId:
+        (typeof item.serviceCategoryId === "object"
+          ? item.serviceCategoryId?._id
+          : item.serviceCategoryId) || "",
+      serviceCategoryName:
+        item.serviceCategoryName ||
+        (typeof item.serviceCategoryId === "object"
+          ? item.serviceCategoryId?.name
+          : "") ||
+        "",
       priority: item.priority || "medium",
       status: item.status || "pending",
     });
@@ -118,6 +159,27 @@ export default function Complaints() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "modelId") {
+      const selectedModel = models.find((item) => item._id === value);
+      setForm((prev) => ({
+        ...prev,
+        modelId: value,
+        modelName: selectedModel?.name || "",
+      }));
+      return;
+    }
+
+    if (name === "serviceCategoryId") {
+      const selectedCategory = serviceCategories.find((item) => item._id === value);
+      setForm((prev) => ({
+        ...prev,
+        serviceCategoryId: value,
+        serviceCategoryName: selectedCategory?.name || "",
+      }));
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -147,7 +209,9 @@ export default function Complaints() {
       customerPhone: form.customerPhone.trim(),
       title: form.title.trim(),
       description: form.description.trim(),
+      modelId: form.modelId || null,
       modelName: form.modelName.trim(),
+      serviceCategoryId: form.serviceCategoryId || null,
       serviceCategoryName: form.serviceCategoryName.trim(),
       priority: form.priority.toLowerCase(),
       status: form.status.toLowerCase(),
@@ -450,24 +514,42 @@ export default function Complaints() {
                 <h4>Complaint Details</h4>
                 <div className="form-row-two">
                   <div className="form-group">
-                    <label>Model Name</label>
-                    <input
-                      type="text"
-                      name="modelName"
-                      value={form.modelName}
+                    <label>Model</label>
+                    <select
+                      name="modelId"
+                      value={form.modelId}
                       onChange={handleChange}
-                      placeholder="Enter model name"
-                    />
+                      disabled={metadataLoading}
+                    >
+                      <option value="">
+                        {metadataLoading ? "Loading models..." : "Select model"}
+                      </option>
+                      {models.map((item) => (
+                        <option key={item._id} value={item._id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group">
                     <label>Service Category</label>
-                    <input
-                      type="text"
-                      name="serviceCategoryName"
-                      value={form.serviceCategoryName}
+                    <select
+                      name="serviceCategoryId"
+                      value={form.serviceCategoryId}
                       onChange={handleChange}
-                      placeholder="Enter service category"
-                    />
+                      disabled={metadataLoading}
+                    >
+                      <option value="">
+                        {metadataLoading
+                          ? "Loading service categories..."
+                          : "Select service category"}
+                      </option>
+                      {serviceCategories.map((item) => (
+                        <option key={item._id} value={item._id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>

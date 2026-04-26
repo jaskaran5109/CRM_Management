@@ -204,8 +204,10 @@
 }
 
 .cx-data-page .table-wrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-radius: 24px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cx-data-page .bulk-actions {
@@ -225,6 +227,10 @@
   border-collapse: collapse;
   background: var(--table-bg);
   color: var(--table-text);
+}
+
+.cx-data-page .users-table {
+  min-width: 1460px;
 }
 
 .cx-data-page .users-table th,

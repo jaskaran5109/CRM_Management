@@ -1350,12 +1350,13 @@ body {
 .table-wrap {
   background: var(--bg-secondary);
   border-radius: 16px;
-  overflow: scroll;
+  overflow-x: auto;
+  overflow-y: hidden;
   width: auto;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .users-table {
@@ -1700,6 +1701,14 @@ body {
 .preview-table {
   background: var(--table-bg);
   color: var(--table-text);
+}
+
+.users-table {
+  min-width: 960px;
+}
+
+.data-table {
+  min-width: 860px;
 }
 
 .users-table th,

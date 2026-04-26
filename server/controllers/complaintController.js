@@ -1,6 +1,8 @@
 import Complaint from "../models/Complaint.js";
 import ComplaintHistory from "../models/ComplaintHistory.js";
 import ComplaintComment from "../models/ComplaintComment.js";
+import CXModel from "../models/CXModel.js";
+import CXServiceCategory from "../models/CXServiceCategory.js";
 import User from "../models/User.js";
 import { Resend } from "resend";
 import {
@@ -9,6 +11,12 @@ import {
   sendCommentNotificationEmail,
   sendComplaintAssignmentEmail,
 } from "../utils/emailService.js";
+import {
+  attachComplaintViewerAccess,
+  buildComplaintPermissionSnapshot,
+  extractComplaintRoleFields,
+  findTellyCallingRoleId,
+} from "../utils/complaintPermissionUtils.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -70,6 +78,40 @@ export const createComplaint = async (req, res) => {
       });
     }
 
+    let resolvedModelId = modelId || null;
+    let resolvedModelName = modelName?.trim() || null;
+    if (resolvedModelId) {
+      const model = await CXModel.findById(resolvedModelId).select("name").lean();
+      if (!model) {
+        return res.status(400).json({
+          message: "Selected model does not exist",
+        });
+      }
+      resolvedModelName = model.name;
+    }
+
+    let resolvedServiceCategoryId = serviceCategoryId || null;
+    let resolvedServiceCategoryName = serviceCategoryName?.trim() || null;
+    if (resolvedServiceCategoryId) {
+      const serviceCategory = await CXServiceCategory.findById(
+        resolvedServiceCategoryId,
+      )
+        .select("name")
+        .lean();
+      if (!serviceCategory) {
+        return res.status(400).json({
+          message: "Selected service category does not exist",
+        });
+      }
+      resolvedServiceCategoryName = serviceCategory.name;
+    }
+
+    const permissionSnapshot = await buildComplaintPermissionSnapshot(
+      normalizedStatus,
+    );
+    const complaintRoleFields = extractComplaintRoleFields(permissionSnapshot);
+    const tellyCallingRoleId = await findTellyCallingRoleId();
+
     // Create complaint
     const complaint = await Complaint.create({
       title: title.trim(),
@@ -79,20 +121,27 @@ export const createComplaint = async (req, res) => {
       customerPhone: customerPhone.trim(),
       priority: normalizedPriority,
       status: normalizedStatus,
-      modelId: modelId || null,
-      modelName: modelName?.trim() || null,
-      serviceCategoryId: serviceCategoryId || null,
-      serviceCategoryName: serviceCategoryName?.trim() || null,
+      modelId: resolvedModelId,
+      modelName: resolvedModelName,
+      serviceCategoryId: resolvedServiceCategoryId,
+      serviceCategoryName: resolvedServiceCategoryName,
       createdBy: req.user?._id || null, // null for public complaints, user id for admin
       assignedTo: assignedTo || null,
+      role: tellyCallingRoleId
+        ? [tellyCallingRoleId]
+        : complaintRoleFields.role,
+      nextRoles: complaintRoleFields.nextRoles,
       internalNotes,
       slaDeadline: slaDeadline ? new Date(slaDeadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       dynamicFields: new Map(Object.entries(dynamicFields)),
+      permissionSnapshot,
     });
 
     // Populate references
     await complaint.populate("createdBy", "name email");
     await complaint.populate("assignedTo", "name email");
+    await complaint.populate("modelId", "name");
+    await complaint.populate("serviceCategoryId", "name");
 
     // Log in history
     await ComplaintHistory.create({
@@ -162,16 +211,23 @@ export const listComplaints = async (req, res) => {
 
     // Build filter object
     const filter = {};
+    const andFilters = [];
+
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
 
     // Role-based filtering
-    if (req.user.role === "user") {
-      filter.createdBy = req.user._id; // Users see only their complaints
-    } else if (req.user.role === "agent") {
-      // Agents see assigned + created complaints
-      filter.$or = [
-        { assignedTo: req.user._id },
-        { createdBy: req.user._id },
-      ];
+    const userRoleIds = (req.user.userRole || []).map((role) =>
+      typeof role === "string" ? role : role?._id?.toString(),
+    ).filter(Boolean);
+
+    if (req.user.role !== "admin") {
+      if (userRoleIds.length > 0) {
+        filter.role = { $in: userRoleIds };
+      } else {
+        filter.createdBy = req.user._id;
+      }
     }
     // Admin sees all complaints (no role-based filter)
 
@@ -201,14 +257,16 @@ export const listComplaints = async (req, res) => {
 
     // Text search (case-insensitive regex)
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { customerName: { $regex: search, $options: "i" } },
-        { customerEmail: { $regex: search, $options: "i" } },
-        { modelName: { $regex: search, $options: "i" } },
-        { serviceCategoryName: { $regex: search, $options: "i" } },
-      ];
+      andFilters.push({
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+          { customerName: { $regex: search, $options: "i" } },
+          { customerEmail: { $regex: search, $options: "i" } },
+          { modelName: { $regex: search, $options: "i" } },
+          { serviceCategoryName: { $regex: search, $options: "i" } },
+        ],
+      });
     }
 
     // Date range filtering
@@ -221,6 +279,9 @@ export const listComplaints = async (req, res) => {
         filter.createdAt.$lte = new Date(endDate);
       }
     }
+
+    const finalFilter =
+      andFilters.length > 0 ? { ...filter, $and: andFilters } : filter;
 
     // Validate pagination
     const pageNum = Math.max(1, parseInt(page) || 1);
@@ -235,22 +296,31 @@ export const listComplaints = async (req, res) => {
 
     // Execute query
     const [complaints, total] = await Promise.all([
-      Complaint.find(filter)
+      Complaint.find(finalFilter)
         .populate("createdBy", "name email role")
         .populate("assignedTo", "name email role")
+        .populate("modelId", "name")
+        .populate("serviceCategoryId", "name")
+        .populate("role", "name")
+        .populate("nextRoles", "name")
         .sort(sortObj)
         .skip(skip)
         .limit(limitNum)
         .lean(),
-      Complaint.countDocuments(filter),
+      Complaint.countDocuments(finalFilter),
     ]);
 
     // Calculate metadata
     const totalPages = Math.ceil(total / limitNum);
 
+    const enrichedComplaints = complaints.map((complaint) => ({
+      ...complaint,
+      viewerAccess: attachComplaintViewerAccess(complaint, req.user),
+    }));
+
     res.json({
       message: "Complaints retrieved successfully",
-      data: complaints,
+      data: enrichedComplaints,
       pagination: {
         total,
         page: pageNum,
@@ -279,6 +349,10 @@ export const getComplaint = async (req, res) => {
     const complaint = await Complaint.findById(id)
       .populate("createdBy", "name email role")
       .populate("assignedTo", "name email role")
+      .populate("modelId", "name")
+      .populate("serviceCategoryId", "name")
+      .populate("role", "name")
+      .populate("nextRoles", "name")
       .populate("attachments.uploadedBy", "name email");
 
     if (!complaint) {
@@ -290,7 +364,7 @@ export const getComplaint = async (req, res) => {
     // Authorization check
     if (
       req.user.role === "user" &&
-      !complaint.createdBy._id.equals(req.user._id)
+      (!complaint.createdBy || !complaint.createdBy._id?.equals(req.user._id))
     ) {
       return res.status(403).json({
         message: "Not authorized to view this complaint",
@@ -305,9 +379,14 @@ export const getComplaint = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const complaintObject = complaint.toObject();
+
     res.json({
       message: "Complaint retrieved successfully",
-      data: complaint,
+      data: {
+        ...complaintObject,
+        viewerAccess: attachComplaintViewerAccess(complaintObject, req.user),
+      },
       history,
     });
   } catch (error) {
@@ -339,7 +418,7 @@ export const updateComplaint = async (req, res) => {
     // Authorization check
     if (
       req.user.role === "user" &&
-      !complaint.createdBy.equals(req.user._id)
+      (!complaint.createdBy || !complaint.createdBy.equals(req.user._id))
     ) {
       return res.status(403).json({
         message: "Not authorized to update this complaint",
@@ -358,7 +437,9 @@ export const updateComplaint = async (req, res) => {
       "customerName",
       "customerEmail",
       "customerPhone",
+      "modelId",
       "modelName",
+      "serviceCategoryId",
       "serviceCategoryName",
       "priority",
       "status",
@@ -386,6 +467,44 @@ export const updateComplaint = async (req, res) => {
             statusChanged = true;
           }
         }
+      }
+    }
+
+    const finalFilter =
+      andFilters.length > 0 ? { ...filter, $and: andFilters } : filter;
+
+    if ("modelId" in updateData) {
+      if (updateData.modelId) {
+        const model = await CXModel.findById(updateData.modelId).select("name").lean();
+        if (!model) {
+          return res.status(400).json({ message: "Selected model does not exist" });
+        }
+        complaint.modelId = updateData.modelId;
+        complaint.modelName = model.name;
+      } else {
+        complaint.modelId = null;
+        complaint.modelName = updateData.modelName?.trim() || null;
+      }
+    }
+
+    if ("serviceCategoryId" in updateData) {
+      if (updateData.serviceCategoryId) {
+        const serviceCategory = await CXServiceCategory.findById(
+          updateData.serviceCategoryId,
+        )
+          .select("name")
+          .lean();
+        if (!serviceCategory) {
+          return res
+            .status(400)
+            .json({ message: "Selected service category does not exist" });
+        }
+        complaint.serviceCategoryId = updateData.serviceCategoryId;
+        complaint.serviceCategoryName = serviceCategory.name;
+      } else {
+        complaint.serviceCategoryId = null;
+        complaint.serviceCategoryName =
+          updateData.serviceCategoryName?.trim() || null;
       }
     }
 
@@ -417,10 +536,25 @@ export const updateComplaint = async (req, res) => {
       });
     }
 
+    if ("status" in updateData && updateData.status !== undefined) {
+      complaint.permissionSnapshot = await buildComplaintPermissionSnapshot(
+        complaint.status,
+      );
+      const complaintRoleFields = extractComplaintRoleFields(
+        complaint.permissionSnapshot,
+      );
+      complaint.role = complaintRoleFields.role;
+      complaint.nextRoles = complaintRoleFields.nextRoles;
+    }
+
     // Save updated complaint
     const updatedComplaint = await complaint.save();
     await updatedComplaint.populate("createdBy", "name email");
     await updatedComplaint.populate("assignedTo", "name email");
+    await updatedComplaint.populate("modelId", "name");
+    await updatedComplaint.populate("serviceCategoryId", "name");
+    await updatedComplaint.populate("role", "name");
+    await updatedComplaint.populate("nextRoles", "name");
 
     // Log all changes in history
     for (const change of changes) {
@@ -496,7 +630,13 @@ export const updateComplaint = async (req, res) => {
 
     res.json({
       message: "Complaint updated successfully",
-      data: updatedComplaint,
+      data: {
+        ...updatedComplaint.toObject(),
+        viewerAccess: attachComplaintViewerAccess(
+          updatedComplaint.toObject(),
+          req.user,
+        ),
+      },
       changesCount: changes.length,
     });
   } catch (error) {
@@ -525,7 +665,7 @@ export const deleteComplaint = async (req, res) => {
     // Authorization check - only creator or admin
     if (
       req.user.role === "user" &&
-      !complaint.createdBy.equals(req.user._id)
+      (!complaint.createdBy || !complaint.createdBy.equals(req.user._id))
     ) {
       if (req.user.role !== "admin") {
         return res.status(403).json({
@@ -812,6 +952,10 @@ export const assignComplaint = async (req, res) => {
 
     await complaint.populate("createdBy", "name email");
     await complaint.populate("assignedTo", "name email");
+    await complaint.populate("modelId", "name");
+    await complaint.populate("serviceCategoryId", "name");
+    await complaint.populate("role", "name");
+    await complaint.populate("nextRoles", "name");
 
     res.json({
       message: "Complaint assigned successfully",
@@ -855,6 +999,12 @@ export const updateComplaintStatus = async (req, res) => {
 
     // Update status
     complaint.status = newStatus;
+    complaint.permissionSnapshot = await buildComplaintPermissionSnapshot(newStatus);
+    const complaintRoleFields = extractComplaintRoleFields(
+      complaint.permissionSnapshot,
+    );
+    complaint.role = complaintRoleFields.role;
+    complaint.nextRoles = complaintRoleFields.nextRoles;
     await complaint.save();
 
     // Log in history
@@ -879,6 +1029,10 @@ export const updateComplaintStatus = async (req, res) => {
 
     await complaint.populate("createdBy", "name email");
     await complaint.populate("assignedTo", "name email");
+    await complaint.populate("modelId", "name");
+    await complaint.populate("serviceCategoryId", "name");
+    await complaint.populate("role", "name");
+    await complaint.populate("nextRoles", "name");
 
     res.json({
       message: "Complaint status updated successfully",

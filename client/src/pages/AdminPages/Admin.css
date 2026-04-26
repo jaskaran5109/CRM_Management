@@ -72,8 +72,10 @@
 }
 
 :is(.admin-page, .admin-users-page) .table-wrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-radius: 24px;
+  -webkit-overflow-scrolling: touch;
 }
 
 :is(.admin-page, .admin-users-page) .search-input,
@@ -220,6 +222,10 @@
 :is(.admin-page, .admin-users-page) .preview-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+:is(.admin-page, .admin-users-page) .users-table {
+  min-width: 980px;
 }
 
 :is(.admin-page, .admin-users-page) .users-table th,
@@ -445,6 +451,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--bg-secondary);
 }
 
 :is(.admin-page, .admin-users-page) .pagination-btn.active {
@@ -458,6 +468,15 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+:is(.admin-page, .admin-users-page) .pagination-page-size select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
 }
 
 @media (max-width: 900px) {

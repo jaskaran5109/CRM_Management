@@ -59,6 +59,18 @@ const complaintSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    role: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserRole",
+      },
+    ],
+    nextRoles: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserRole",
+      },
+    ],
 
     // Attachments & Notes
     attachments: [
@@ -91,6 +103,10 @@ const complaintSchema = new mongoose.Schema(
       type: Map,
       of: mongoose.Schema.Types.Mixed,
       default: new Map(),
+    },
+    permissionSnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
   },
   { timestamps: true, strict: false }

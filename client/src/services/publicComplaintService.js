@@ -4,6 +4,8 @@
 import { getApiBaseUrl } from "../config/apiConfig";
 
 const PUBLIC_BASE = `${getApiBaseUrl()}/public/complaints`;
+const CX_MODELS_PUBLIC_BASE = `${getApiBaseUrl()}/cx-models`;
+const CX_SERVICE_CATEGORIES_PUBLIC_BASE = `${getApiBaseUrl()}/cx-service-categories`;
 
 /**
  * Create a new complaint (public)
@@ -26,6 +28,28 @@ export const createPublicComplaint = async (formData) => {
     console.error("createPublicComplaint error:", error);
     throw error;
   }
+};
+
+export const fetchPublicComplaintModels = async () => {
+  const response = await fetch(CX_MODELS_PUBLIC_BASE);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch models");
+  }
+
+  return response.json();
+};
+
+export const fetchPublicComplaintServiceCategories = async () => {
+  const response = await fetch(CX_SERVICE_CATEGORIES_PUBLIC_BASE);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch service categories");
+  }
+
+  return response.json();
 };
 
 /**

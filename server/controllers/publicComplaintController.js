@@ -1,11 +1,18 @@
 import Complaint from "../models/Complaint.js";
 import ComplaintComment from "../models/ComplaintComment.js";
+import CXModel from "../models/CXModel.js";
+import CXServiceCategory from "../models/CXServiceCategory.js";
 import User from "../models/User.js";
 import {
   sendComplaintConfirmationEmail,
   sendStatusUpdateEmail,
   sendCommentNotificationEmail,
 } from "../utils/emailService.js";
+import {
+  buildComplaintPermissionSnapshot,
+  extractComplaintRoleFields,
+  findTellyCallingRoleId,
+} from "../utils/complaintPermissionUtils.js";
 
 /**
  * Create a new complaint (public - no authentication required)
@@ -38,6 +45,36 @@ export const createPublicComplaint = async (req, res) => {
       });
     }
 
+    let resolvedModelId = modelId || null;
+    let resolvedModelName = modelName?.trim() || null;
+    if (resolvedModelId) {
+      const model = await CXModel.findById(resolvedModelId).select("name").lean();
+      if (!model) {
+        return res.status(400).json({ message: "Selected model does not exist" });
+      }
+      resolvedModelName = model.name;
+    }
+
+    let resolvedServiceCategoryId = serviceCategoryId || null;
+    let resolvedServiceCategoryName = serviceCategoryName?.trim() || null;
+    if (resolvedServiceCategoryId) {
+      const serviceCategory = await CXServiceCategory.findById(
+        resolvedServiceCategoryId,
+      )
+        .select("name")
+        .lean();
+      if (!serviceCategory) {
+        return res
+          .status(400)
+          .json({ message: "Selected service category does not exist" });
+      }
+      resolvedServiceCategoryName = serviceCategory.name;
+    }
+
+    const permissionSnapshot = await buildComplaintPermissionSnapshot("pending");
+    const complaintRoleFields = extractComplaintRoleFields(permissionSnapshot);
+    const tellyCallingRoleId = await findTellyCallingRoleId();
+
     // Check if customer exists in the system by phone number
     let linkedCustomer = null;
     try {
@@ -54,19 +91,31 @@ export const createPublicComplaint = async (req, res) => {
       customerPhone: customerPhone.trim(),
       title: title.trim(),
       description: description.trim(),
-      modelId: modelId || null,
-      modelName: modelName || null,
-      serviceCategoryId: serviceCategoryId || null,
-      serviceCategoryName: serviceCategoryName || null,
+      modelId: resolvedModelId,
+      modelName: resolvedModelName,
+      serviceCategoryId: resolvedServiceCategoryId,
+      serviceCategoryName: resolvedServiceCategoryName,
       priority: priority.toLowerCase(),
       status: "pending",
       linkedCustomer: linkedCustomer?._id || null,
       createdBy: null, // No user for public complaints
       assignedTo: null,
+      role: tellyCallingRoleId
+        ? [tellyCallingRoleId]
+        : complaintRoleFields.role,
+      nextRoles: complaintRoleFields.nextRoles,
+      permissionSnapshot,
     });
 
     // Send confirmation email
-    await sendComplaintConfirmationEmail(complaint);
+    try {
+      await sendComplaintConfirmationEmail(complaint);
+    } catch (emailError) {
+      console.error(
+        "Public complaint confirmation email failed:",
+        emailError.message,
+      );
+    }
 
     res.status(201).json({
       message: "Complaint created successfully",

@@ -6,8 +6,8 @@ import { protect, adminOnly } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// ✅ GET ALL CX SERVICE CATEGORIES
-router.get("/", protect, async (req, res) => {
+// GET ALL CX SERVICE CATEGORIES
+router.get("/", async (req, res) => {
   try {
     const cxModels = await CXServiceCategory.find()
       .populate("status", "name")
@@ -19,7 +19,7 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// ✅ CREATE SINGLE CX SERVICE CATEGORY
+// CREATE SINGLE CX SERVICE CATEGORY
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const { name, status } = req.body;
@@ -72,7 +72,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ CREATE MULTIPLE CX MODELS (BATCH)
+// CREATE MULTIPLE CX SERVICE CATEGORIES (BATCH)
 router.post("/bulk", protect, adminOnly, async (req, res) => {
   try {
     const { cxServiceCategories, status } = req.body;
@@ -102,9 +102,7 @@ router.post("/bulk", protect, adminOnly, async (req, res) => {
     }
 
     const cleaned = [
-      ...new Set(
-        cxServiceCategories.map((item) => item.trim()).filter(Boolean),
-      ),
+      ...new Set(cxServiceCategories.map((item) => item.trim()).filter(Boolean)),
     ];
 
     const existing = await CXServiceCategory.find({
@@ -203,7 +201,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
     const updated = await cxServiceCategory.save();
 
     const populatedUpdated = await CXServiceCategory.findById(
-      updated._id,  
+      updated._id,
     ).populate("status", "name");
 
     res.json(populatedUpdated);
@@ -213,7 +211,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ DELETE CX MODEL
+// DELETE CX SERVICE CATEGORY
 router.delete("/:id", protect, adminOnly, async (req, res) => {
   try {
     const cxServiceCategory = await CXServiceCategory.findById(req.params.id);

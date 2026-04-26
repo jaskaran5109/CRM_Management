@@ -6,8 +6,8 @@ import { protect, adminOnly } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// ✅ GET ALL CX MODELS
-router.get("/", protect, async (req, res) => {
+// GET ALL CX MODELS
+router.get("/", async (req, res) => {
   try {
     const cxModels = await CXModel.find()
       .populate("status", "name")
@@ -19,7 +19,7 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// ✅ CREATE SINGLE CX MODEL
+// CREATE SINGLE CX MODEL
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const { name, status } = req.body;
@@ -66,7 +66,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ CREATE MULTIPLE CX MODELS (BATCH)
+// CREATE MULTIPLE CX MODELS (BATCH)
 router.post("/bulk", protect, adminOnly, async (req, res) => {
   try {
     const { cxModels, status } = req.body;
@@ -90,9 +90,7 @@ router.post("/bulk", protect, adminOnly, async (req, res) => {
       validatedStatus = status;
     }
 
-    const cleaned = [
-      ...new Set(cxModels.map((ur) => ur.trim()).filter(Boolean)),
-    ];
+    const cleaned = [...new Set(cxModels.map((ur) => ur.trim()).filter(Boolean))];
 
     const existing = await CXModel.find({ name: { $in: cleaned } });
     const existingNames = existing.map((e) => e.name);
@@ -124,7 +122,7 @@ router.post("/bulk", protect, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ UPDATE CX MODEL
+// UPDATE CX MODEL
 router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
     const { cxModel, status } = req.body;
@@ -150,7 +148,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
         return res.status(400).json({ message: "CX model already exists" });
       }
 
-      cxModel.name = trimmedName;
+      cxModelNew.name = trimmedName;
     }
 
     if (status !== undefined) {
@@ -182,7 +180,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ DELETE CX MODEL
+// DELETE CX MODEL
 router.delete("/:id", protect, adminOnly, async (req, res) => {
   try {
     const cxModel = await CXModel.findById(req.params.id);
