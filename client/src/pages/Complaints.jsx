@@ -15,7 +15,11 @@ import {
   deleteComplaintAction,
   clearComplaintStatus,
 } from "../redux/slices/complaintSlice";
-import { fetchAllUserRoles } from "../redux/slices/adminSlices/userRoleSlice";
+import {
+  formatComplaintStatusLabel,
+  getComplaintStatusClassName,
+  isLegacyComplaintStatus,
+} from "../utils/complaintStatus";
 
 const initialForm = {
   customerName: "",
@@ -28,31 +32,21 @@ const initialForm = {
   serviceCategoryId: "",
   serviceCategoryName: "",
   priority: "medium",
-  status: "pending",
-  complaintRole: "",
+  status: "",
 };
-
-const getRoleNames = (roles = []) =>
-  roles
-    .map((role) => (typeof role === "string" ? role : role?.name || ""))
-    .filter(Boolean);
-
-const getPrimaryRoleId = (roles = []) =>
-  (Array.isArray(roles) ? roles : [roles])
-    .map((role) => (typeof role === "string" ? role : role?._id || ""))
-    .find(Boolean) || "";
-
-const normalizeRoleName = (value = "") =>
-  String(value).trim().toLowerCase().replace(/[\s_-]+/g, " ");
 
 export default function Complaints() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { list: userRoles = [] } = useSelector((state) => state.userRoles);
-
-  const isAdmin = user.role === "admin";
+  const isAdmin = user?.role === "admin";
   const complaintState = useSelector((state) => state.complaints);
-  const { list: complaints = [], loading, error, success } = complaintState;
+  const {
+    list: complaints = [],
+    loading,
+    error,
+    success,
+    allowedStatuses = [],
+  } = complaintState;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
@@ -70,24 +64,15 @@ export default function Complaints() {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const currentEditComplaint = complaints.find((item) => item._id === editId) || null;
-  const tellyCallingRole = userRoles.find(
-    (role) => normalizeRoleName(role?.name) === "telly calling",
-  );
-  const tellyCallingRoleId = tellyCallingRole?._id || "";
-  const roleOptions = userRoles.filter(
-    (role) => role?._id && role._id !== tellyCallingRoleId,
-  );
+  const getStatusBadgeClass = (statusValue) =>
+    isLegacyComplaintStatus(statusValue)
+      ? `status-badge ${getComplaintStatusClassName(statusValue)}`
+      : "status-badge status-workflow";
 
   useEffect(() => {
     dispatch(listComplaints({ queryString: "" }));
     return () => dispatch(clearComplaintStatus());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      dispatch(fetchAllUserRoles());
-    }
-  }, [dispatch, isAdmin]);
 
   useEffect(() => {
     const loadComplaintMetadata = async () => {
@@ -139,7 +124,10 @@ export default function Complaints() {
 
   const openCreateSidebar = () => {
     setEditId(null);
-    setForm(initialForm);
+    setForm({
+      ...initialForm,
+      status: allowedStatuses[0]?.value || "",
+    });
     setShowSidebar(true);
   };
 
@@ -166,8 +154,7 @@ export default function Complaints() {
           : "") ||
         "",
       priority: item.priority || "medium",
-      status: item.status || "pending",
-      complaintRole: getPrimaryRoleId(item.role),
+      status: item.status || "",
     });
     setShowSidebar(true);
   };
@@ -233,6 +220,11 @@ export default function Complaints() {
       return;
     }
 
+    if (!form.status) {
+      toast.error("Status is required");
+      return;
+    }
+
     // Construct payload with all fields
     const payload = {
       customerName: form.customerName.trim(),
@@ -245,13 +237,12 @@ export default function Complaints() {
       serviceCategoryId: form.serviceCategoryId || null,
       serviceCategoryName: form.serviceCategoryName.trim(),
       priority: form.priority.toLowerCase(),
-      status: form.status.toLowerCase(),
+      status: form.status,
     };
 
     if (editId) {
-      const currentComplaintRoleId = getPrimaryRoleId(currentEditComplaint?.role);
-      if (isAdmin && form.complaintRole && form.complaintRole !== currentComplaintRoleId) {
-        payload.role = form.complaintRole;
+      if (currentEditComplaint?.status === form.status) {
+        delete payload.status;
       }
 
       // For updates, use PATCH and only send changed fields
@@ -327,9 +318,11 @@ export default function Complaints() {
                 }
               >
                 <option value="">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="resolved">Resolved</option>
+                {allowedStatuses.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -409,7 +402,6 @@ export default function Complaints() {
               <tr>
                 <th>Title</th>
                 <th>Customer</th>
-                <th>Complaint Role</th>
                 <th>Status</th>
                 <th>Priority</th>
                 <th>Created by</th>
@@ -424,16 +416,10 @@ export default function Complaints() {
                   </td>
                   <td>{item.customerName}</td>
                   <td>
-                    <span className="complaint-role-pill">
-                      {getRoleNames(item.role).join(", ") || "Unassigned"}
-                    </span>
-                  </td>
-                  <td>
                     <span
-                      className={`status-badge status-${item.status?.replace(/_/g, "-")}`}
+                      className={getStatusBadgeClass(item.status)}
                     >
-                      {item.status?.replace(/_/g, " ").charAt(0).toUpperCase() +
-                        item.status?.slice(1).replace(/_/g, " ")}
+                      {formatComplaintStatusLabel(item.status)}
                     </span>
                   </td>
                   <td>
@@ -554,28 +540,6 @@ export default function Complaints() {
               {/* Complaint Details - 2 Column Layout */}
               <div className="form-section-group">
                 <h4>Complaint Details</h4>
-                {editId && isAdmin && (
-                  <div className="form-group">
-                    <label>Complaint Role</label>
-                    <select
-                      name="complaintRole"
-                      value={form.complaintRole}
-                      onChange={handleChange}
-                    >
-                      {form.complaintRole === tellyCallingRoleId && tellyCallingRoleId && (
-                        <option value={tellyCallingRoleId}>
-                          {tellyCallingRole?.name || "Telly Calling"} (current)
-                        </option>
-                      )}
-                      <option value="">Select complaint role</option>
-                      {roleOptions.map((role) => (
-                        <option key={role._id} value={role._id}>
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <div className="form-row-two">
                   <div className="form-group">
                     <label>Model</label>
@@ -642,15 +606,24 @@ export default function Complaints() {
               </div>
 
               <div className="form-group">
-                <label>Status</label>
+                <label>Status *</label>
                 <select
                   name="status"
                   value={form.status}
                   onChange={handleChange}
+                  required
                 >
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
+                  {!form.status && <option value="">Select status</option>}
+                  {editId && isLegacyComplaintStatus(currentEditComplaint?.status) && (
+                    <option value={currentEditComplaint?.status}>
+                      {formatComplaintStatusLabel(currentEditComplaint?.status)} (legacy)
+                    </option>
+                  )}
+                  {allowedStatuses.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -663,7 +636,7 @@ export default function Complaints() {
                 className="btn-role"
                 onClick={handleSubmit}
                 disabled={
-                  loading || !form.title.trim() || !form.description.trim()
+                  loading || !form.title.trim() || !form.description.trim() || !form.status
                 }
               >
                 {loading ? "Saving..." : editId ? "Update" : "Create"}

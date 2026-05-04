@@ -1,9 +1,14 @@
 import React from "react";
+import {
+  formatComplaintStatusLabel,
+  isLegacyComplaintStatus,
+} from "../../utils/complaintStatus";
 
 const statusStyle = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
   in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
   resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+  workflow: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100",
 };
 
 const priorityStyle = {
@@ -18,8 +23,6 @@ export default function ComplaintDetails({ mode, complaint, formData, onChange, 
   if (!complaint && mode === "view") {
     return <p className="text-sm text-slate-500">No complaint selected.</p>;
   }
-
-  const data = mode === "create" ? formData : complaint;
 
   return (
     <div className="space-y-5">
@@ -98,8 +101,14 @@ export default function ComplaintDetails({ mode, complaint, formData, onChange, 
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Status & Priority</h3>
         {mode === "view" ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle[complaint.status]}`}>
-              {complaint.status.replace("_", " ")}
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                isLegacyComplaintStatus(complaint.status)
+                  ? statusStyle[complaint.status] || statusStyle.pending
+                  : statusStyle.workflow
+              }`}
+            >
+              {formatComplaintStatusLabel(complaint.status)}
             </span>
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyle[complaint.priority]}`}>
               {complaint.priority}
@@ -113,9 +122,11 @@ export default function ComplaintDetails({ mode, complaint, formData, onChange, 
               onChange={onChange}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
+              {isLegacyComplaintStatus(formData.status) && (
+                <option value={formData.status}>
+                  {formatComplaintStatusLabel(formData.status)} (legacy)
+                </option>
+              )}
             </select>
             <select
               name="priority"

@@ -10,6 +10,7 @@ server/uploads/
 .idea/
 .vscode/extensions.json
 *.log
+/.md
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

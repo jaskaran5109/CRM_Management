@@ -329,6 +329,16 @@
   color: #86efac;
 }
 
+.status-workflow {
+  background: #e9d5ff;
+  color: #6b21a8;
+}
+
+.dark .status-workflow {
+  background: #4c1d95;
+  color: #ddd6fe;
+}
+
 /* Priority Badge */
 .priority-badge {
   display: inline-block;

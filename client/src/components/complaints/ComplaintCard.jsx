@@ -1,9 +1,14 @@
 import React from "react";
+import {
+  formatComplaintStatusLabel,
+  isLegacyComplaintStatus,
+} from "../../utils/complaintStatus";
 
 const statusStyle = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
   in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
   resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+  workflow: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-100",
 };
 
 const priorityStyle = {
@@ -41,8 +46,14 @@ export default function ComplaintCard({ complaint, onSelect, onDelete }) {
       </p>
 
       <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle[complaint.status] || statusStyle.pending}`}>
-          {complaint.status.replace("_", " ")}
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            isLegacyComplaintStatus(complaint.status)
+              ? statusStyle[complaint.status] || statusStyle.pending
+              : statusStyle.workflow
+          }`}
+        >
+          {formatComplaintStatusLabel(complaint.status)}
         </span>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyle[complaint.priority] || priorityStyle.low}`}>
           {complaint.priority}

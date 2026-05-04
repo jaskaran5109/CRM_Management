@@ -4,7 +4,6 @@ import ComplaintComment from "../models/ComplaintComment.js";
 import CXModel from "../models/CXModel.js";
 import CXServiceCategory from "../models/CXServiceCategory.js";
 import User from "../models/User.js";
-import UserRole from "../models/UserRole.js";
 import { Resend } from "resend";
 import mongoose from "mongoose";
 import {
@@ -13,70 +12,25 @@ import {
   sendCommentNotificationEmail,
   sendComplaintAssignmentEmail,
 } from "../utils/emailService.js";
+import { formatStatusLabel } from "../utils/complaintWorkflow.js";
 import {
   attachComplaintViewerAccess,
   buildComplaintPermissionSnapshot,
-  extractComplaintRoleFields,
-  findTellyCallingRoleId,
+  getAllowedStatusOptionsForUser,
+  getUserRoleIds,
+  hasComplaintAccess,
+  validateStatusForUser,
 } from "../utils/complaintPermissionUtils.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const getRoleIds = (value) =>
-  (value || [])
-    .map((item) => (typeof item === "string" ? item : String(item?._id || item)))
-    .filter(Boolean);
-
-const getReferenceId = (value) =>
-  typeof value === "string" ? value : String(value?._id || value || "");
-
-const normalizeRoleName = (value = "") =>
-  String(value).trim().toLowerCase().replace(/[\s_-]+/g, " ");
-
-const hasComplaintAccess = (complaint, user) => {
-  if (!user) return false;
-  if (user.role === "admin") return true;
-
-  const complaintRoleIds = getRoleIds(complaint?.role);
-  const userRoleIds = getRoleIds(user?.userRole);
-  const isCreator =
-    complaint?.createdBy && getReferenceId(complaint.createdBy) === String(user._id);
-  const isAssigned =
-    complaint?.assignedTo && getReferenceId(complaint.assignedTo) === String(user._id);
-
-  return (
-    isCreator ||
-    isAssigned ||
-    complaintRoleIds.some((roleId) => userRoleIds.includes(roleId))
-  );
-};
-
-const getNonTellyRoleIds = (roles, tellyCallingRoleId) =>
-  getRoleIds(roles).filter((roleId) => roleId !== tellyCallingRoleId);
-
-const getPrimaryRoleId = (roleValue) => {
-  if (Array.isArray(roleValue)) {
-    return roleValue.find(Boolean) || "";
-  }
-  return roleValue || "";
-};
-
-const formatRoleChangeValue = (roleIds) => roleIds.map(String);
-
-const resolveInitialComplaintRole = async () => {
-  const tellyCallingRoleId = await findTellyCallingRoleId();
-
-  if (!tellyCallingRoleId) {
-    return {
-      error: "Telly calling role must exist before creating complaints",
-      roleIds: [],
-    };
-  }
-
-  return {
-    error: null,
-    roleIds: [tellyCallingRoleId],
-  };
+const populateComplaint = async (complaint) => {
+  await complaint.populate("createdBy", "name email");
+  await complaint.populate("assignedTo", "name email userRole");
+  await complaint.populate("modelId", "name");
+  await complaint.populate("serviceCategoryId", "name");
+  await complaint.populate("nextRoles", "name");
+  return complaint;
 };
 
 /**
@@ -93,7 +47,7 @@ export const createComplaint = async (req, res) => {
       customerEmail,
       customerPhone,
       priority = "medium",
-      status = "pending",
+      status,
       modelId = null,
       modelName = null,
       serviceCategoryId = null,
@@ -120,10 +74,7 @@ export const createComplaint = async (req, res) => {
 
     // Validate priority and status enums
     const validPriorities = ["low", "medium", "high"];
-    const validStatuses = ["pending", "in_progress", "resolved"];
-    
     const normalizedPriority = priority.toLowerCase();
-    const normalizedStatus = status.toLowerCase();
     
     if (!validPriorities.includes(normalizedPriority)) {
       return res.status(400).json({
@@ -131,9 +82,11 @@ export const createComplaint = async (req, res) => {
       });
     }
 
-    if (!validStatuses.includes(normalizedStatus)) {
+    const statusValidation = await validateStatusForUser(req.user, status);
+    if (!statusValidation.ok) {
       return res.status(400).json({
-        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+        message: statusValidation.message,
+        allowedStatuses: statusValidation.allowedStatuses,
       });
     }
 
@@ -165,16 +118,8 @@ export const createComplaint = async (req, res) => {
       resolvedServiceCategoryName = serviceCategory.name;
     }
 
-    const permissionSnapshot = await buildComplaintPermissionSnapshot(
-      normalizedStatus,
-    );
-    const complaintRoleFields = extractComplaintRoleFields(permissionSnapshot);
-    const initialComplaintRole = await resolveInitialComplaintRole();
-    if (initialComplaintRole.error) {
-      return res.status(400).json({
-        message: initialComplaintRole.error,
-      });
-    }
+    const resolvedStatus = statusValidation.statusValue;
+    const permissionSnapshot = await buildComplaintPermissionSnapshot(resolvedStatus);
 
     // Create complaint
     const complaint = await Complaint.create({
@@ -184,15 +129,14 @@ export const createComplaint = async (req, res) => {
       customerEmail: customerEmail.toLowerCase().trim(),
       customerPhone: customerPhone.trim(),
       priority: normalizedPriority,
-      status: normalizedStatus,
+      status: resolvedStatus,
       modelId: resolvedModelId,
       modelName: resolvedModelName,
       serviceCategoryId: resolvedServiceCategoryId,
       serviceCategoryName: resolvedServiceCategoryName,
       createdBy: req.user?._id || null, // null for public complaints, user id for admin
       assignedTo: assignedTo || null,
-      role: initialComplaintRole.roleIds,
-      nextRoles: complaintRoleFields.nextRoles,
+      nextRoles: permissionSnapshot.nextRoleIds,
       internalNotes,
       slaDeadline: slaDeadline ? new Date(slaDeadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       dynamicFields: new Map(Object.entries(dynamicFields)),
@@ -200,10 +144,7 @@ export const createComplaint = async (req, res) => {
     });
 
     // Populate references
-    await complaint.populate("createdBy", "name email");
-    await complaint.populate("assignedTo", "name email");
-    await complaint.populate("modelId", "name");
-    await complaint.populate("serviceCategoryId", "name");
+    await populateComplaint(complaint);
 
     // Log in history
     await ComplaintHistory.create({
@@ -229,7 +170,10 @@ export const createComplaint = async (req, res) => {
 
     res.status(201).json({
       message: "Complaint created successfully",
-      data: complaint,
+      data: {
+        ...complaint.toObject(),
+        allowedStatuses: statusValidation.allowedStatuses,
+      },
       trackingId: complaint._id,
     });
   } catch (error) {
@@ -280,16 +224,15 @@ export const listComplaints = async (req, res) => {
     }
 
     // Role-based filtering
-    const userRoleIds = (req.user.userRole || []).map((role) =>
-      typeof role === "string" ? role : role?._id?.toString(),
-    ).filter(Boolean);
+    const userRoleIds = getUserRoleIds(req.user);
 
     if (req.user.role !== "admin") {
-      if (userRoleIds.length > 0) {
-        filter.role = { $in: userRoleIds };
-      } else {
-        filter.createdBy = req.user._id;
-      }
+      filter.$or = [
+        { createdBy: req.user._id },
+        { assignedTo: req.user._id },
+        { nextRoles: { $in: userRoleIds } },
+        { "permissionSnapshot.allowedUserRoleIds": { $in: userRoleIds } },
+      ];
     }
     // Admin sees all complaints (no role-based filter)
 
@@ -363,7 +306,6 @@ export const listComplaints = async (req, res) => {
         .populate("assignedTo", "name email role")
         .populate("modelId", "name")
         .populate("serviceCategoryId", "name")
-        .populate("role", "name")
         .populate("nextRoles", "name")
         .sort(sortObj)
         .skip(skip)
@@ -379,10 +321,12 @@ export const listComplaints = async (req, res) => {
       ...complaint,
       viewerAccess: attachComplaintViewerAccess(complaint, req.user),
     }));
+    const allowedStatuses = await getAllowedStatusOptionsForUser(req.user);
 
     res.json({
       message: "Complaints retrieved successfully",
       data: enrichedComplaints,
+      allowedStatuses,
       pagination: {
         total,
         page: pageNum,
@@ -413,7 +357,6 @@ export const getComplaint = async (req, res) => {
       .populate("assignedTo", "name email role")
       .populate("modelId", "name")
       .populate("serviceCategoryId", "name")
-      .populate("role", "name")
       .populate("nextRoles", "name")
       .populate("attachments.uploadedBy", "name email");
 
@@ -438,12 +381,14 @@ export const getComplaint = async (req, res) => {
       .lean();
 
     const complaintObject = complaint.toObject();
+    const allowedStatuses = await getAllowedStatusOptionsForUser(req.user);
 
     res.json({
       message: "Complaint retrieved successfully",
       data: {
         ...complaintObject,
         viewerAccess: attachComplaintViewerAccess(complaintObject, req.user),
+        allowedStatuses,
       },
       history,
     });
@@ -451,6 +396,22 @@ export const getComplaint = async (req, res) => {
     console.error("Get complaint error:", error);
     res.status(500).json({
       message: "Failed to fetch complaint",
+      error: error.message,
+    });
+  }
+};
+
+export const getComplaintStatusOptions = async (req, res) => {
+  try {
+    const allowedStatuses = await getAllowedStatusOptionsForUser(req.user);
+    res.json({
+      message: "Complaint status options retrieved successfully",
+      data: allowedStatuses,
+    });
+  } catch (error) {
+    console.error("Get complaint status options error:", error);
+    res.status(500).json({
+      message: "Failed to fetch complaint status options",
       error: error.message,
     });
   }
@@ -482,9 +443,15 @@ export const updateComplaint = async (req, res) => {
     const isAdmin = req.user.role === "admin";
     const isAgent = req.user.role === "agent";
 
-    if ((("role" in updateData) || ("assignedTo" in updateData)) && !isAdmin) {
+    if ("role" in updateData) {
+      return res.status(400).json({
+        message: "Complaint role is no longer part of the complaint workflow",
+      });
+    }
+
+    if ("assignedTo" in updateData && !isAdmin) {
       return res.status(403).json({
-        message: "Only admins can update complaint role and assignment",
+        message: "Only admins can update complaint assignment",
       });
     }
 
@@ -496,6 +463,21 @@ export const updateComplaint = async (req, res) => {
       return res.status(403).json({
         message: "Only admins and agents can update complaint status or priority",
       });
+    }
+
+    let validatedStatusValue = null;
+    let allowedStatuses = null;
+    if ("status" in updateData) {
+      const statusValidation = await validateStatusForUser(req.user, updateData.status);
+      if (!statusValidation.ok) {
+        return res.status(400).json({
+          message: statusValidation.message,
+          allowedStatuses: statusValidation.allowedStatuses,
+        });
+      }
+
+      validatedStatusValue = statusValidation.statusValue;
+      allowedStatuses = statusValidation.allowedStatuses;
     }
 
     // Track changes for history & email
@@ -523,7 +505,10 @@ export const updateComplaint = async (req, res) => {
     for (const field of allowedFields) {
       if (field in updateData && updateData[field] !== undefined) {
         const oldValue = complaint[field];
-        const newValue = updateData[field];
+        const newValue =
+          field === "status" && validatedStatusValue !== null
+            ? validatedStatusValue
+            : updateData[field];
 
         if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
           changes.push({
@@ -607,141 +592,55 @@ export const updateComplaint = async (req, res) => {
       });
     }
 
-    if ("role" in updateData || "assignedTo" in updateData) {
-      const tellyCallingRoleId = await findTellyCallingRoleId();
-      const currentRoleIds = getRoleIds(complaint.role);
-      const requestedRoleId = getPrimaryRoleId(updateData.role);
-      let resolvedRoleIds = currentRoleIds;
-
-      if ("role" in updateData) {
-        if (!requestedRoleId) {
+    if ("assignedTo" in updateData) {
+      if (!updateData.assignedTo) {
+        const oldAssignedTo = complaint.assignedTo ? String(complaint.assignedTo) : null;
+        complaint.assignedTo = null;
+        if (oldAssignedTo !== null) {
+          changes.push({
+            fieldName: "assignedTo",
+            oldValue: oldAssignedTo,
+            newValue: null,
+          });
+        }
+      } else {
+        if (!mongoose.Types.ObjectId.isValid(updateData.assignedTo)) {
           return res.status(400).json({
-            message: "Complaint role is required",
+            message: "Invalid assigned user",
           });
         }
 
-        if (!mongoose.Types.ObjectId.isValid(requestedRoleId)) {
-          return res.status(400).json({
-            message: "Invalid complaint role",
-          });
-        }
+        const assignedUser = await User.findById(updateData.assignedTo)
+          .populate("userRole", "name")
+          .select("name email userRole")
+          .lean();
 
-        const requestedRole = await UserRole.findById(requestedRoleId).select("name").lean();
-        if (!requestedRole) {
+        if (!assignedUser) {
           return res.status(404).json({
-            message: "Complaint role not found",
+            message: "Assigned user not found",
           });
         }
 
-        if (
-          requestedRoleId === tellyCallingRoleId ||
-          normalizeRoleName(requestedRole.name) === "telly calling"
-        ) {
-          return res.status(400).json({
-            message: "Telly calling role cannot be assigned to complaints",
+        const oldAssignedTo = complaint.assignedTo ? String(complaint.assignedTo) : null;
+        if (oldAssignedTo !== String(updateData.assignedTo)) {
+          complaint.assignedTo = updateData.assignedTo;
+          changes.push({
+            fieldName: "assignedTo",
+            oldValue: oldAssignedTo,
+            newValue: String(updateData.assignedTo),
           });
         }
-
-        resolvedRoleIds = [requestedRoleId];
-      }
-
-      if ("assignedTo" in updateData) {
-        if (!updateData.assignedTo) {
-          const oldAssignedTo = complaint.assignedTo ? String(complaint.assignedTo) : null;
-          complaint.assignedTo = null;
-          if (oldAssignedTo !== null) {
-            changes.push({
-              fieldName: "assignedTo",
-              oldValue: oldAssignedTo,
-              newValue: null,
-            });
-          }
-        } else {
-          if (!mongoose.Types.ObjectId.isValid(updateData.assignedTo)) {
-            return res.status(400).json({
-              message: "Invalid assigned user",
-            });
-          }
-
-          const assignedUser = await User.findById(updateData.assignedTo)
-            .populate("userRole", "name")
-            .select("name email userRole")
-            .lean();
-
-          if (!assignedUser) {
-            return res.status(404).json({
-              message: "Assigned user not found",
-            });
-          }
-
-          const assignedUserRoleIds = getNonTellyRoleIds(
-            assignedUser.userRole,
-            tellyCallingRoleId,
-          );
-
-          if (assignedUserRoleIds.length === 0) {
-            return res.status(400).json({
-              message: "Assigned user must have at least one non-telly-calling role",
-            });
-          }
-
-          if (resolvedRoleIds.length > 0) {
-            if (!assignedUserRoleIds.includes(resolvedRoleIds[0])) {
-              return res.status(400).json({
-                message: "Assigned user does not belong to the selected complaint role",
-              });
-            }
-          } else {
-            const preferredRoleId =
-              currentRoleIds.find((roleId) => assignedUserRoleIds.includes(roleId)) ||
-              assignedUserRoleIds[0];
-            resolvedRoleIds = preferredRoleId ? [preferredRoleId] : [];
-          }
-
-          const oldAssignedTo = complaint.assignedTo ? String(complaint.assignedTo) : null;
-          if (oldAssignedTo !== String(updateData.assignedTo)) {
-            complaint.assignedTo = updateData.assignedTo;
-            changes.push({
-              fieldName: "assignedTo",
-              oldValue: oldAssignedTo,
-              newValue: String(updateData.assignedTo),
-            });
-          }
-        }
-      }
-
-      const oldRoleIds = getRoleIds(complaint.role);
-      if (JSON.stringify(oldRoleIds) !== JSON.stringify(resolvedRoleIds)) {
-        complaint.role = resolvedRoleIds;
-        changes.push({
-          fieldName: "role",
-          oldValue: formatRoleChangeValue(oldRoleIds),
-          newValue: formatRoleChangeValue(resolvedRoleIds),
-        });
       }
     }
 
     if ("status" in updateData && updateData.status !== undefined) {
-      complaint.permissionSnapshot = await buildComplaintPermissionSnapshot(
-        complaint.status,
-      );
-      const complaintRoleFields = extractComplaintRoleFields(
-        complaint.permissionSnapshot,
-      );
-      complaint.nextRoles = complaintRoleFields.nextRoles;
-      if (getRoleIds(complaint.role).length === 0) {
-        complaint.role = complaintRoleFields.role;
-      }
+      complaint.permissionSnapshot = await buildComplaintPermissionSnapshot(complaint.status);
+      complaint.nextRoles = complaint.permissionSnapshot.nextRoleIds;
     }
 
     // Save updated complaint
     const updatedComplaint = await complaint.save();
-    await updatedComplaint.populate("createdBy", "name email");
-    await updatedComplaint.populate("assignedTo", "name email");
-    await updatedComplaint.populate("modelId", "name");
-    await updatedComplaint.populate("serviceCategoryId", "name");
-    await updatedComplaint.populate("role", "name");
-    await updatedComplaint.populate("nextRoles", "name");
+    await populateComplaint(updatedComplaint);
 
     // Log all changes in history
     for (const change of changes) {
@@ -793,7 +692,7 @@ export const updateComplaint = async (req, res) => {
             <ul>
               <li><strong>Reference ID:</strong> ${complaint._id}</li>
               <li><strong>Title:</strong> ${complaint.title}</li>
-              <li><strong>Status:</strong> ${complaint.status}</li>
+              <li><strong>Status:</strong> ${formatStatusLabel(complaint.status)}</li>
               <li><strong>Priority:</strong> ${complaint.priority}</li>
             </ul>
             
@@ -819,10 +718,9 @@ export const updateComplaint = async (req, res) => {
       message: "Complaint updated successfully",
       data: {
         ...updatedComplaint.toObject(),
-        viewerAccess: attachComplaintViewerAccess(
-          updatedComplaint.toObject(),
-          req.user,
-        ),
+        viewerAccess: attachComplaintViewerAccess(updatedComplaint.toObject(), req.user),
+        allowedStatuses:
+          allowedStatuses || (await getAllowedStatusOptionsForUser(req.user)),
       },
       changesCount: changes.length,
     });
@@ -888,7 +786,9 @@ export const deleteComplaint = async (req, res) => {
 export const getComplaintHistory = async (req, res) => {
   try {
     const { id } = req.params;
-    const complaint = await Complaint.findById(id).select("createdBy assignedTo role");
+    const complaint = await Complaint.findById(id).select(
+      "createdBy assignedTo nextRoles permissionSnapshot",
+    );
 
     if (!complaint) {
       return res.status(404).json({
@@ -1139,27 +1039,11 @@ export const assignComplaint = async (req, res) => {
       });
     }
 
-    const tellyCallingRoleId = await findTellyCallingRoleId();
-    const assignedUserRoleIds = getNonTellyRoleIds(
-      assignedUser.userRole,
-      tellyCallingRoleId,
-    );
-
-    if (assignedUserRoleIds.length === 0) {
-      return res.status(400).json({
-        message: "Assigned user must have at least one non-telly-calling role",
-      });
-    }
-
     // Store old value
     const oldAssignedTo = complaint.assignedTo;
-    const oldRoleIds = getRoleIds(complaint.role);
 
     // Update assignment
     complaint.assignedTo = assignedToUserId;
-    if (!oldRoleIds.some((roleId) => assignedUserRoleIds.includes(roleId))) {
-      complaint.role = [assignedUserRoleIds[0]];
-    }
     await complaint.save();
 
     // Log in history
@@ -1180,12 +1064,7 @@ export const assignComplaint = async (req, res) => {
     // Send assignment email to user
     await sendComplaintAssignmentEmail(complaint, assignedUser.email, assignedUser.name);
 
-    await complaint.populate("createdBy", "name email");
-    await complaint.populate("assignedTo", "name email");
-    await complaint.populate("modelId", "name");
-    await complaint.populate("serviceCategoryId", "name");
-    await complaint.populate("role", "name");
-    await complaint.populate("nextRoles", "name");
+    await populateComplaint(complaint);
 
     res.json({
       message: "Complaint assigned successfully",
@@ -1208,11 +1087,11 @@ export const updateComplaintStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    // Validate status
-    const validStatuses = ["pending", "in_progress", "resolved"];
-    if (!status || !validStatuses.includes(status.toLowerCase())) {
+    const statusValidation = await validateStatusForUser(req.user, status);
+    if (!statusValidation.ok) {
       return res.status(400).json({
-        message: `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
+        message: statusValidation.message,
+        allowedStatuses: statusValidation.allowedStatuses,
       });
     }
 
@@ -1231,18 +1110,12 @@ export const updateComplaintStatus = async (req, res) => {
     }
 
     const oldStatus = complaint.status;
-    const newStatus = status.toLowerCase();
+    const newStatus = statusValidation.statusValue;
 
     // Update status
     complaint.status = newStatus;
     complaint.permissionSnapshot = await buildComplaintPermissionSnapshot(newStatus);
-    const complaintRoleFields = extractComplaintRoleFields(
-      complaint.permissionSnapshot,
-    );
-    complaint.nextRoles = complaintRoleFields.nextRoles;
-    if (getRoleIds(complaint.role).length === 0) {
-      complaint.role = complaintRoleFields.role;
-    }
+    complaint.nextRoles = complaint.permissionSnapshot.nextRoleIds;
     await complaint.save();
 
     // Log in history
@@ -1265,16 +1138,14 @@ export const updateComplaintStatus = async (req, res) => {
       await sendStatusUpdateEmail(complaint, oldStatus, newStatus);
     }
 
-    await complaint.populate("createdBy", "name email");
-    await complaint.populate("assignedTo", "name email");
-    await complaint.populate("modelId", "name");
-    await complaint.populate("serviceCategoryId", "name");
-    await complaint.populate("role", "name");
-    await complaint.populate("nextRoles", "name");
+    await populateComplaint(complaint);
 
     res.json({
       message: "Complaint status updated successfully",
-      data: complaint,
+      data: {
+        ...complaint.toObject(),
+        allowedStatuses: statusValidation.allowedStatuses,
+      },
     });
   } catch (error) {
     console.error("Update status error:", error);

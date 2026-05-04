@@ -7,7 +7,6 @@ import {
   deleteComplaint,
   fetchHistory,
   fetchComplaintStats,
-  buildFormDataForComplaint,
 } from "../../services/complaintService";
 
 export const createComplaintAction = createAsyncThunk(
@@ -69,7 +68,6 @@ export const updateComplaintAction = createAsyncThunk(
       if (data?.message && data?.error) return rejectWithValue(data.message || "Failed");
       return data?.data ?? data;
     } catch (err) {
-      debugger;
       return rejectWithValue(err.message || "Network error");
     }
   },
@@ -123,6 +121,7 @@ const complaintSlice = createSlice({
   name: "complaints",
   initialState: {
     list: [],
+    allowedStatuses: [],
     total: 0,
     page: 1,
     limit: 10,
@@ -159,6 +158,7 @@ const complaintSlice = createSlice({
         state.loading = false;
         state.success = "Complaint created successfully";
         state.list.unshift(action.payload);
+        state.allowedStatuses = action.payload.allowedStatuses || state.allowedStatuses;
       })
       .addCase(createComplaintAction.rejected, rejected)
 
@@ -166,6 +166,7 @@ const complaintSlice = createSlice({
       .addCase(listComplaints.fulfilled, (state, action) => {
         state.loading = false;
         state.list = action.payload.data || [];
+        state.allowedStatuses = action.payload.allowedStatuses || [];
         state.total = action.payload.pagination?.total || 0;
         state.page = action.payload.pagination?.page || 1;
         state.limit = action.payload.pagination?.limit || 10;
@@ -177,6 +178,8 @@ const complaintSlice = createSlice({
       .addCase(getComplaint.fulfilled, (state, action) => {
         state.loading = false;
         state.current = action.payload?.data ?? action.payload;
+        state.allowedStatuses =
+          action.payload?.data?.allowedStatuses || state.allowedStatuses;
       })
       .addCase(getComplaint.rejected, rejected)
 
@@ -193,6 +196,7 @@ const complaintSlice = createSlice({
         if (index !== -1) {
           state.list[index] = action.payload;
         }
+        state.allowedStatuses = action.payload.allowedStatuses || state.allowedStatuses;
       })
       .addCase(updateComplaintAction.rejected, rejected)
 

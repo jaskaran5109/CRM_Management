@@ -1,7 +1,9 @@
 import { Resend } from "resend";
+import { formatStatusLabel } from "./complaintWorkflow.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@crm.example.com";
+const displayStatus = (value) => formatStatusLabel(value);
 
 /**
  * Send complaint creation confirmation email
@@ -19,7 +21,7 @@ export const sendComplaintConfirmationEmail = async (complaint) => {
         <li><strong>Title:</strong> ${complaint.title}</li>
         <li><strong>Description:</strong> ${complaint.description}</li>
         <li><strong>Priority:</strong> ${complaint.priority}</li>
-        <li><strong>Status:</strong> ${complaint.status}</li>
+        <li><strong>Status:</strong> ${displayStatus(complaint.status)}</li>
         <li><strong>Submitted on:</strong> ${new Date(complaint.createdAt).toLocaleString()}</li>
       </ul>
       
@@ -56,12 +58,12 @@ export const sendStatusUpdateEmail = async (complaint, oldStatus, newStatus) => 
       <ul>
         <li><strong>Reference ID:</strong> ${complaint._id}</li>
         <li><strong>Title:</strong> ${complaint.title}</li>
-        <li><strong>Previous Status:</strong> ${oldStatus}</li>
-        <li><strong>New Status:</strong> ${newStatus}</li>
+        <li><strong>Previous Status:</strong> ${displayStatus(oldStatus)}</li>
+        <li><strong>Updated Status:</strong> ${displayStatus(newStatus)}</li>
         <li><strong>Updated on:</strong> ${new Date().toLocaleString()}</li>
       </ul>
       
-      <p>We appreciate your patience and will continue working to resolve your complaint.</p>
+      <p>We appreciate your patience and will continue working on your complaint.</p>
       <p>You can view more details by visiting our tracking portal.</p>
       <p>Best regards,<br>CRM Support Team</p>
     `;
@@ -69,7 +71,7 @@ export const sendStatusUpdateEmail = async (complaint, oldStatus, newStatus) => 
     const result = await resend.emails.send({
       from: emailFrom,
       to: complaint.customerEmail,
-      subject: `Complaint Status Update - Reference ID: ${complaint._id}`,
+      subject: `Complaint Status Updated to ${displayStatus(newStatus)} - Reference ID: ${complaint._id}`,
       html: emailContent,
     });
 
@@ -99,7 +101,7 @@ export const sendCommentNotificationEmail = async (complaint, comment) => {
       <ul>
         <li><strong>Reference ID:</strong> ${complaint._id}</li>
         <li><strong>Title:</strong> ${complaint.title}</li>
-        <li><strong>Current Status:</strong> ${complaint.status}</li>
+        <li><strong>Current Status:</strong> ${displayStatus(complaint.status)}</li>
       </ul>
       
       <p>You can view all updates by visiting our tracking portal.</p>
@@ -138,7 +140,7 @@ export const sendComplaintAssignmentEmail = async (complaint, assignedUserEmail,
         <li><strong>Customer Phone:</strong> ${complaint.customerPhone}</li>
         <li><strong>Description:</strong> ${complaint.description}</li>
         <li><strong>Priority:</strong> ${complaint.priority}</li>
-        <li><strong>Status:</strong> ${complaint.status}</li>
+        <li><strong>Status:</strong> ${displayStatus(complaint.status)}</li>
         <li><strong>Model:</strong> ${complaint.modelName || "N/A"}</li>
         <li><strong>Service Category:</strong> ${complaint.serviceCategoryName || "N/A"}</li>
       </ul>

@@ -6,6 +6,11 @@ import {
   getPublicComplaintDetail,
   trackComplaintsByPhone,
 } from "../services/publicComplaintService";
+import {
+  formatComplaintStatusLabel,
+  getComplaintStatusClassName,
+  isLegacyComplaintStatus,
+} from "../utils/complaintStatus";
 
 export default function TrackComplaint() {
   const [searchLoading, setSearchLoading] = useState(false);
@@ -23,8 +28,26 @@ export default function TrackComplaint() {
   });
 
   useEffect(() => {
-    handleSearch({ preventDefault: () => {} });
-  }, [initialPhone])
+    if (!initialPhone) {
+      return;
+    }
+
+    const loadInitialComplaints = async () => {
+      setSearchLoading(true);
+      try {
+        const result = await trackComplaintsByPhone(initialPhone, "");
+        setComplaints(result.data || []);
+        setSelectedComplaint(null);
+        setComments([]);
+      } catch (error) {
+        console.error("Initial complaint search failed:", error);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    loadInitialComplaints();
+  }, [initialPhone]);
   
 
   // Handle search form change
@@ -118,7 +141,9 @@ export default function TrackComplaint() {
   };
 
   const getStatusBadgeClass = (status) => {
-    return `status-badge status-${status?.replace(" ", "-").toLowerCase()}`;
+    return isLegacyComplaintStatus(status)
+      ? `status-badge ${getComplaintStatusClassName(status)}`
+      : "status-badge status-workflow";
   };
 
   const getPriorityBadgeClass = (priority) => {
@@ -192,7 +217,7 @@ export default function TrackComplaint() {
                     <p className="complaint-ref">Reference ID: {complaint._id}</p>
                   </div>
                   <span className={getStatusBadgeClass(complaint.status)}>
-                    {complaint.status}
+                    {formatComplaintStatusLabel(complaint.status)}
                   </span>
                 </div>
 
@@ -212,7 +237,7 @@ export default function TrackComplaint() {
               <div className="detail-header">
                 <h2>Complaint Details</h2>
                 <span className={getStatusBadgeClass(selectedComplaint.status)}>
-                  {selectedComplaint.status}
+                  {formatComplaintStatusLabel(selectedComplaint.status)}
                 </span>
               </div>
 

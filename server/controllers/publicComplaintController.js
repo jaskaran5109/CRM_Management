@@ -3,32 +3,11 @@ import ComplaintComment from "../models/ComplaintComment.js";
 import CXModel from "../models/CXModel.js";
 import CXServiceCategory from "../models/CXServiceCategory.js";
 import User from "../models/User.js";
-import {
-  sendComplaintConfirmationEmail,
-  sendStatusUpdateEmail,
-  sendCommentNotificationEmail,
-} from "../utils/emailService.js";
+import { sendComplaintConfirmationEmail } from "../utils/emailService.js";
 import {
   buildComplaintPermissionSnapshot,
-  extractComplaintRoleFields,
-  findTellyCallingRoleId,
+  resolvePublicInitialStatus,
 } from "../utils/complaintPermissionUtils.js";
-
-const resolveInitialComplaintRole = async () => {
-  const tellyCallingRoleId = await findTellyCallingRoleId();
-
-  if (!tellyCallingRoleId) {
-    return {
-      error: "Telly calling role must exist before creating complaints",
-      roleIds: [],
-    };
-  }
-
-  return {
-    error: null,
-    roleIds: [tellyCallingRoleId],
-  };
-};
 
 /**
  * Create a new complaint (public - no authentication required)
@@ -87,14 +66,15 @@ export const createPublicComplaint = async (req, res) => {
       resolvedServiceCategoryName = serviceCategory.name;
     }
 
-    const permissionSnapshot = await buildComplaintPermissionSnapshot("pending");
-    const complaintRoleFields = extractComplaintRoleFields(permissionSnapshot);
-    const initialComplaintRole = await resolveInitialComplaintRole();
-    if (initialComplaintRole.error) {
+    const initialStatus = await resolvePublicInitialStatus();
+    if (!initialStatus.ok) {
       return res.status(400).json({
-        message: initialComplaintRole.error,
+        message: initialStatus.message,
       });
     }
+    const permissionSnapshot = await buildComplaintPermissionSnapshot(
+      initialStatus.statusOption.value,
+    );
 
     // Check if customer exists in the system by phone number
     let linkedCustomer = null;
@@ -117,12 +97,11 @@ export const createPublicComplaint = async (req, res) => {
       serviceCategoryId: resolvedServiceCategoryId,
       serviceCategoryName: resolvedServiceCategoryName,
       priority: priority.toLowerCase(),
-      status: "pending",
+      status: initialStatus.statusOption.value,
       linkedCustomer: linkedCustomer?._id || null,
       createdBy: null, // No user for public complaints
       assignedTo: null,
-      role: initialComplaintRole.roleIds,
-      nextRoles: complaintRoleFields.nextRoles,
+      nextRoles: permissionSnapshot.nextRoleIds,
       permissionSnapshot,
     });
 

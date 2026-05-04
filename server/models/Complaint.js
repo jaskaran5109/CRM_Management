@@ -41,8 +41,7 @@ const complaintSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in_progress", "resolved"],
-      default: "pending",
+      required: true,
       index: true,
     },
 
@@ -59,12 +58,6 @@ const complaintSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
-    role: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "UserRole",
-      },
-    ],
     nextRoles: [
       {
         type: mongoose.Schema.Types.ObjectId,

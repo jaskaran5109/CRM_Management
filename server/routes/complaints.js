@@ -15,6 +15,7 @@ import {
   getComplaintComments,
   assignComplaint,
   updateComplaintStatus,
+  getComplaintStatusOptions,
 } from "../controllers/complaintController.js";
 import { protect } from "../middleware/auth.js";
 
@@ -92,7 +93,7 @@ router.post("/", upload.array("attachments", 5), createComplaint);
  *   - limit: number (default: 10, max: 100)
  *   - sortBy: 'createdAt' | 'priority' | 'status' | 'title' (default: createdAt)
  *   - order: 'asc' | 'desc' (default: desc)
- *   - status: comma-separated statuses (e.g., 'open,in_progress')
+ *   - status: comma-separated workflow status values
  *   - priority: comma-separated priorities (e.g., 'high,medium')
  *   - category: comma-separated categories
  *   - assignedTo: user ID
@@ -102,6 +103,7 @@ router.post("/", upload.array("attachments", 5), createComplaint);
  *   - endDate: ISO date string
  */
 router.get("/", listComplaints);
+router.get("/status-options", getComplaintStatusOptions);
 
 /**
  * READ - GET /api/complaints/stats
@@ -147,7 +149,7 @@ router.post("/:id/assign", assignComplaint);
 /**
  * PATCH - PATCH /api/complaints/:id/status
  * Update complaint status
- * Body: { status: 'pending' | 'in_progress' | 'resolved' }
+ * Body: { status: '<role-allowed workflow status>' }
  */
 router.patch("/:id/status", updateComplaintStatus);
 

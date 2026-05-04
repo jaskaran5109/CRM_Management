@@ -173,6 +173,18 @@
   color: #0f5132;
 }
 
+.status-workflow {
+  background: #ede9fe;
+  color: #6b21a8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-workflow {
+    background: #4c1d95;
+    color: #ddd6fe;
+  }
+}
+
 .priority-badge {
   display: inline-block;
   padding: 4px 10px;
