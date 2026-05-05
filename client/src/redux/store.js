@@ -11,6 +11,7 @@ import cxDataReducer from "./slices/cxDataSlice";
 import dashboardReducer from "./slices/dashboardSlice";
 import themeReducer from "./slices/themeSlice";
 import complaintReducer from "./slices/complaintSlice";
+import dynamicFormReducer from "./slices/dynamicFormSlice";
 import { applyTheme } from "../utils/themeUtils";
 
 const store = configureStore({
@@ -27,6 +28,7 @@ const store = configureStore({
     dashboard: dashboardReducer,
     theme: themeReducer,
     complaints: complaintReducer,
+    dynamicForms: dynamicFormReducer,
   },
 });
 

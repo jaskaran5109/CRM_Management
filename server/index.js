@@ -20,6 +20,7 @@ import cxDataRoutes from "./routes/cxData.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import complaintsRoutes from "./routes/complaints.js";
 import publicComplaintsRoutes from "./routes/publicComplaints.js";
+import dynamicFormRoutes from "./routes/dynamicForms.js";
 
 const app = express();
 const config = getAppConfig();
@@ -111,6 +112,7 @@ app.use("/api/cx-models", cxModelRoutes);
 app.use("/api/cx-service-categories", cxServiceCategoryRoutes);
 app.use("/api/cx-data", cxDataRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/dynamic-forms", dynamicFormRoutes);
 
 
 app.get('/', (req, res) => res.json({ message: 'MERN Auth API running' }));

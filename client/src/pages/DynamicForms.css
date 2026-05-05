@@ -1,0 +1,234 @@
+.dynamic-forms-screen,
+.dynamic-form-render-screen,
+.dynamic-forms-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dynamic-forms-hero {
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, var(--card-bg)), color-mix(in srgb, var(--secondary) 14%, var(--card-bg)));
+  box-shadow: var(--shadow);
+}
+
+.dynamic-forms-hero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--text);
+}
+
+.dynamic-forms-hero p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.dynamic-forms-hero__eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.dynamic-forms-layout,
+.dynamic-admin-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.dynamic-admin-grid {
+  grid-template-columns: 0.75fr 1.3fr 1fr;
+}
+
+.dynamic-forms-catalog,
+.dynamic-forms-submissions,
+.dynamic-form-canvas,
+.dynamic-admin-panel {
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.dynamic-forms-layout__head,
+.dynamic-admin-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-direction: column;
+}
+
+.dynamic-forms-card-grid,
+.dynamic-admin-list,
+.dynamic-forms-submission-list,
+.dynamic-sections {
+  display: grid;
+  gap: 14px;
+}
+
+.dynamic-forms-card,
+.dynamic-admin-card,
+.dynamic-forms-submission-card,
+.dynamic-section-card {
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  background: var(--bg-secondary);
+  padding: 18px;
+}
+
+.dynamic-admin-card,
+.dynamic-field-pill,
+.dynamic-section-card__title {
+  text-align: left;
+}
+
+.dynamic-admin-card.is-active,
+.dynamic-field-pill.is-active {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--card-border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg-secondary));
+}
+
+.dynamic-admin-card,
+.dynamic-field-pill,
+.dynamic-section-card__title,
+.dynamic-forms-card__cta {
+  width: 100%;
+}
+
+.dynamic-forms-card h3,
+.dynamic-admin-panel h3 {
+  margin: 0;
+  color: var(--text);
+}
+
+.dynamic-forms-card p,
+.dynamic-admin-card p,
+.dynamic-forms-submission-card span,
+.dynamic-section-card__title span,
+.dynamic-form__helper,
+.dynamic-form__section-head p {
+  color: var(--text-muted);
+}
+
+.dynamic-forms-card__meta,
+.dynamic-forms-card__footer,
+.dynamic-section-card__head,
+.dynamic-form__actions,
+.dynamic-builder-form__grid {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.dynamic-builder-form,
+.dynamic-form {
+  display: grid;
+  gap: 18px;
+}
+
+.dynamic-form__section {
+  padding: 20px;
+  border: 1px solid var(--card-border);
+  border-radius: 22px;
+  background: var(--bg-secondary);
+}
+
+.dynamic-form__section-head h3 {
+  margin: 0;
+  color: var(--text);
+}
+
+.dynamic-form__section-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dynamic-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dynamic-form__label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.dynamic-form__required,
+.dynamic-form__error {
+  color: var(--error);
+}
+
+.dynamic-form__input,
+.dynamic-form__select,
+.dynamic-form__textarea,
+.dynamic-builder-form textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.dynamic-form__select--multi {
+  min-height: 120px;
+}
+
+.dynamic-form__choice-group,
+.dynamic-section-card__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dynamic-form__choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+
+.dynamic-field-pill,
+.dynamic-section-card__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 12px 14px;
+}
+
+.dynamic-form__actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 1200px) {
+  .dynamic-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .dynamic-forms-layout,
+  .dynamic-form__section-grid {
+    grid-template-columns: 1fr;
+  }
+}

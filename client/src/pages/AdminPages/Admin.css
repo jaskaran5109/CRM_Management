@@ -202,6 +202,12 @@
   color: var(--text);
 }
 
+.action-btns .btn-outline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 :is(.admin-page, .admin-users-page) .btn-delete {
   border: 1px solid color-mix(in srgb, var(--error) 26%, var(--card-border));
   background: color-mix(in srgb, var(--error) 10%, var(--bg));

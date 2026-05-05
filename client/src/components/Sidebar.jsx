@@ -6,6 +6,7 @@ import {
   MdChevronLeft,
   MdChevronRight,
   MdClose,
+  MdDescription,
   MdLogout,
   MdOutlineManageAccounts,
   MdOutlineTaskAlt,
@@ -30,6 +31,7 @@ export default function Sidebar({
   const navItems = [
     { label: "Dashboard", path: "/", icon: MdSpaceDashboard },
     { label: "Complaints", path: "/complaints", icon: MdPointOfSale },
+    { label: "Forms", path: "/forms", icon: MdDescription },
     user?.role === "admin" && {
       label: "CX Data",
       path: "/cx-data",
@@ -60,6 +62,11 @@ export default function Sidebar({
             label: "Service Categories",
             path: "/admin/cx-service-categories",
             icon: MdCategory,
+          },
+          {
+            label: "Dynamic Forms",
+            path: "/admin/dynamic-forms",
+            icon: MdDescription,
           },
         ]
       : [];

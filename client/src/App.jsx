@@ -27,6 +27,9 @@ import CreateComplaint from "./pages/CreateComplaint";
 import ComplaintDetail from "./pages/ComplaintDetail";
 import PublicComplaintForm from "./pages/PublicComplaintForm";
 import TrackComplaint from "./pages/TrackComplaint";
+import DynamicForms from "./pages/DynamicForms";
+import DynamicFormRenderer from "./pages/DynamicFormRenderer";
+import AdminDynamicForms from "./pages/AdminPages/AdminDynamicForms";
 import AppShell from "./components/AppShell";
 import ThemeInitializer from "./components/ThemeInitializer";
 
@@ -124,6 +127,28 @@ export default function App() {
           />
 
           <Route
+            path="/forms"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <DynamicForms />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/forms/:slug"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <DynamicFormRenderer />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/complaints"
             element={
               <ProtectedRoute>
@@ -206,6 +231,17 @@ export default function App() {
               <AdminRoute>
                 <AppShell>
                   <AdminCXModels />
+                </AppShell>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/dynamic-forms"
+            element={
+              <AdminRoute>
+                <AppShell>
+                  <AdminDynamicForms />
                 </AppShell>
               </AdminRoute>
             }
