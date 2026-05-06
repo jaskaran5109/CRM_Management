@@ -119,8 +119,22 @@ export function normalizeField(field = {}, fieldOrder = 0) {
           : null,
     },
     permissions: {
-      roles: Array.isArray(field.permissions?.roles)
-        ? [...new Set(field.permissions.roles.map((role) => String(role).trim()).filter(Boolean))]
+      userRoles: Array.isArray(field.permissions?.userRoles)
+        ? [
+            ...new Set(
+              field.permissions.userRoles
+                .map((role) => String(role).trim())
+                .filter(Boolean),
+            ),
+          ]
+        : Array.isArray(field.permissions?.roles)
+          ? [
+              ...new Set(
+                field.permissions.roles
+                  .map((role) => String(role).trim())
+                  .filter(Boolean),
+              ),
+            ]
         : [],
       canView: field.permissions?.canView !== false,
       canEdit: field.permissions?.canEdit !== false,

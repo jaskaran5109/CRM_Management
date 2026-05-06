@@ -4,6 +4,7 @@ import { MdAdd, MdDelete, MdEdit, MdKeyboardArrowDown, MdKeyboardArrowUp, MdVisi
 import { toast } from "react-toastify";
 
 import { TableSkeleton } from "../../components/common/Skeleton";
+import { fetchAllUserRoles } from "../../redux/slices/adminSlices/userRoleSlice";
 import {
   clearDynamicFormStatus,
   createDynamicFormAction,
@@ -33,8 +34,6 @@ const FIELD_TYPES = [
   "datetime",
   "file",
 ];
-
-const ROLE_OPTIONS = ["admin", "user", "agent"];
 
 function buildEditorState(form) {
   if (!form) {
@@ -82,6 +81,7 @@ export default function AdminDynamicForms() {
   const { forms, submissions, currentForm, loading, saving, error, success } = useSelector(
     (state) => state.dynamicForms,
   );
+  const { list: userRoles = [] } = useSelector((state) => state.userRoles);
   const [selectedFormId, setSelectedFormId] = useState(null);
   const [editorState, setEditorState] = useState(buildEditorState(null));
   const [activeSectionId, setActiveSectionId] = useState(null);
@@ -92,6 +92,7 @@ export default function AdminDynamicForms() {
   useEffect(() => {
     dispatch(fetchDynamicFormsAction({ includeInactive: true, limit: 50 }));
     dispatch(fetchFormSubmissionsAction({ limit: 20 }));
+    dispatch(fetchAllUserRoles());
   }, [dispatch]);
 
   useEffect(() => {
@@ -142,6 +143,9 @@ export default function AdminDynamicForms() {
     editorState.sections.find((section) => section.id === activeSectionId) || editorState.sections[0];
   const selectedField =
     selectedSection?.fields.find((field) => field.id === activeFieldRef.fieldId) || selectedSection?.fields[0] || null;
+  const selectedUserRoleIds = (selectedField?.permissions?.userRoles || []).map((role) =>
+    String(role?._id || role),
+  );
 
   function updateRootField(key, value) {
     setEditorState((prev) => ({ ...prev, [key]: value }));
@@ -324,6 +328,23 @@ export default function AdminDynamicForms() {
     }));
   }
 
+  function toggleFieldUserRole(roleId) {
+    if (!selectedField) {
+      return;
+    }
+
+    const nextRoles = selectedUserRoleIds.includes(roleId)
+      ? selectedUserRoleIds.filter((id) => id !== roleId)
+      : [...selectedUserRoleIds, roleId];
+
+    updateField(activeFieldRef.sectionId, activeFieldRef.fieldId, {
+      permissions: {
+        ...selectedField.permissions,
+        userRoles: nextRoles,
+      },
+    });
+  }
+
   function handleSave() {
     if (!editorState.name.trim()) {
       toast.error("Form name is required");
@@ -391,6 +412,21 @@ export default function AdminDynamicForms() {
           <button className="btn-primary" onClick={handleSave} type="button" disabled={saving}>
             {saving ? "Saving..." : selectedFormId ? "Update Form" : "Create Form"}
           </button>
+        </div>
+      </div>
+
+      <div className="dynamic-admin-summary">
+        <div className="dynamic-admin-summary__card">
+          <strong>{forms.length}</strong>
+          <span>Configured forms</span>
+        </div>
+        <div className="dynamic-admin-summary__card">
+          <strong>{forms.filter((form) => form.isActive).length}</strong>
+          <span>Active forms</span>
+        </div>
+        <div className="dynamic-admin-summary__card">
+          <strong>{submissions.length}</strong>
+          <span>Recent submissions</span>
         </div>
       </div>
 
@@ -814,27 +850,30 @@ export default function AdminDynamicForms() {
                   </label>
                 </div>
                 <div className="form-group">
-                  <label>Visible Roles</label>
-                  <select
-                    multiple
-                    value={selectedField.permissions?.roles || []}
-                    onChange={(event) =>
-                      updateField(activeFieldRef.sectionId, activeFieldRef.fieldId, {
-                        permissions: {
-                          ...selectedField.permissions,
-                          roles: Array.from(event.target.selectedOptions).map(
-                            (option) => option.value,
-                          ),
-                        },
-                      })
-                    }
-                  >
-                    {ROLE_OPTIONS.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                  <label>Visible User Roles</label>
+                  <div className="dynamic-role-checkboxes">
+                    {userRoles.map((role) => {
+                      const isChecked = selectedUserRoleIds.includes(role._id);
+                      return (
+                        <label
+                          key={role._id}
+                          className={`dynamic-role-checkbox ${isChecked ? "is-active" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleFieldUserRole(role._id)}
+                          />
+                          <span>{role.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {selectedUserRoleIds.length === 0 ? (
+                    <p className="dynamic-form__helper">
+                      No user roles selected. The field stays visible for all logged-in users.
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

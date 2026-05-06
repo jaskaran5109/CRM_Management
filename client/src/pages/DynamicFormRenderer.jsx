@@ -10,6 +10,7 @@ import {
   fetchDynamicFormAction,
 } from "../redux/slices/dynamicFormSlice";
 import {
+  filterDynamicFormForUser,
   getInitialSubmissionValues,
   getVisibleSections,
   validateDynamicFormValues,
@@ -21,6 +22,7 @@ export default function DynamicFormRenderer() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { slug } = useParams();
+  const { user } = useSelector((state) => state.auth);
   const { currentForm, loading, saving, error, success, currentSubmission } = useSelector(
     (state) => state.dynamicForms,
   );
@@ -31,16 +33,21 @@ export default function DynamicFormRenderer() {
     dispatch(fetchDynamicFormAction(slug));
   }, [dispatch, slug]);
 
+  const roleAwareForm = useMemo(
+    () => filterDynamicFormForUser(currentForm || { sections: [] }, user),
+    [currentForm, user],
+  );
+
   useEffect(() => {
-    if (currentForm) {
+    if (roleAwareForm?.sections?.length || currentForm) {
       const timer = setTimeout(() => {
-        setValues(getInitialSubmissionValues(currentForm));
+        setValues(getInitialSubmissionValues(roleAwareForm));
         setErrors({});
       }, 0);
 
       return () => clearTimeout(timer);
     }
-  }, [currentForm]);
+  }, [currentForm, roleAwareForm]);
 
   useEffect(() => {
     if (error && !toast.isActive("dynamic-form-render-error")) {
@@ -61,9 +68,17 @@ export default function DynamicFormRenderer() {
   }, [currentSubmission, navigate]);
 
   const visibleSections = useMemo(
-    () => getVisibleSections(currentForm || { sections: [] }, values),
-    [currentForm, values],
+    () => getVisibleSections(roleAwareForm || { sections: [] }, values),
+    [roleAwareForm, values],
   );
+
+  const totalVisibleFields = visibleSections.reduce(
+    (count, section) => count + (section.fields?.length || 0),
+    0,
+  );
+  const currentUserRoleNames = Array.isArray(user?.userRole)
+    ? user.userRole.map((role) => role?.name || role).filter(Boolean)
+    : [];
 
   function handleChange(key, value) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -73,7 +88,7 @@ export default function DynamicFormRenderer() {
   function handleSubmit(event) {
     event.preventDefault();
 
-    const nextErrors = validateDynamicFormValues(currentForm, values);
+    const nextErrors = validateDynamicFormValues(roleAwareForm, values);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -89,16 +104,71 @@ export default function DynamicFormRenderer() {
       <div className="dynamic-forms-hero">
         <div>
           <p className="dynamic-forms-hero__eyebrow">Dynamic renderer</p>
-          <h1>{currentForm?.name || "Loading form"}</h1>
-          <p>{currentForm?.description || "This form is rendered directly from the stored schema."}</p>
+          <h1>{roleAwareForm?.name || "Loading form"}</h1>
+          <p>
+            {roleAwareForm?.description ||
+              "This form is rendered directly from the stored schema and filtered by the logged-in user's assigned roles."}
+          </p>
         </div>
       </div>
 
-      <div className="dynamic-form-canvas">
+      <div className="dynamic-form-record-layout">
+        <aside className="dynamic-form-record-sidebar">
+          <div className="dynamic-form-record-card">
+            <h3>Entry Summary</h3>
+            <div className="dynamic-form-record-stats">
+              <div>
+                <strong>{visibleSections.length}</strong>
+                <span>Visible sections</span>
+              </div>
+              <div>
+                <strong>{totalVisibleFields}</strong>
+                <span>Visible fields</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="dynamic-form-record-card">
+            <h3>Logged In User Roles</h3>
+            {currentUserRoleNames.length > 0 ? (
+              <div className="dynamic-form-role-badges">
+                {currentUserRoleNames.map((role) => (
+                  <span key={role} className="name-chip">
+                    {role}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="dynamic-form-record-note">
+                No user roles are assigned to this account. Only unrestricted fields are visible.
+              </p>
+            )}
+          </div>
+
+          <div className="dynamic-form-record-card">
+            <h3>Tips</h3>
+            <ul className="dynamic-form-record-list">
+              <li>Fields hidden by role rules are automatically excluded from submission.</li>
+              <li>Read-only fields are visible but cannot be changed.</li>
+              <li>Conditional fields appear only when their trigger values match.</li>
+            </ul>
+          </div>
+        </aside>
+
+        <div className="dynamic-form-canvas">
         {loading && !currentForm ? (
           <FormSkeleton rows={6} />
         ) : (
           <form className="dynamic-form" onSubmit={handleSubmit}>
+            {totalVisibleFields === 0 ? (
+              <div className="dynamic-form__empty-state">
+                <h3>No fields available</h3>
+                <p>
+                  This form does not expose any fields for your assigned user roles.
+                </p>
+              </div>
+            ) : null}
+
             {visibleSections.map((section) => (
               <SectionRenderer
                 key={section.id || section.key}
@@ -110,16 +180,17 @@ export default function DynamicFormRenderer() {
               />
             ))}
 
-            <div className="dynamic-form__actions">
+            <div className="dynamic-form__actions dynamic-form__actions--sticky">
               <button className="btn-outline" type="button" onClick={() => navigate("/forms")}>
                 Back to Forms
               </button>
-              <button className="btn-primary" type="submit" disabled={saving}>
+              <button className="btn-primary" type="submit" disabled={saving || totalVisibleFields === 0}>
                 {saving ? "Submitting..." : "Submit Form"}
               </button>
             </div>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

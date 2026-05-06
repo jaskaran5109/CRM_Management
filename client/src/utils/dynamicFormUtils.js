@@ -37,7 +37,7 @@ export function createEmptyField(type = "text", order = 0) {
       max: "",
     },
     permissions: {
-      roles: [],
+      userRoles: [],
       canView: true,
       canEdit: true,
     },
@@ -84,6 +84,45 @@ export function getInitialSubmissionValues(form) {
   }
 
   return values;
+}
+
+export function filterDynamicFormForUser(form, user) {
+  const userRoleIds = new Set(
+    Array.isArray(user?.userRole)
+      ? user.userRole.map((role) => String(role?._id || role)).filter(Boolean)
+      : [],
+  );
+
+  return {
+    ...form,
+    sections: (form.sections || [])
+      .map((section) => ({
+        ...section,
+        fields: (section.fields || [])
+          .filter((field) => {
+            const permittedRoles = (field.permissions?.userRoles || []).map((role) =>
+              String(role?._id || role),
+            );
+
+            if (field.permissions?.canView === false) {
+              return false;
+            }
+
+            return (
+              permittedRoles.length === 0 ||
+              permittedRoles.some((roleId) => userRoleIds.has(roleId))
+            );
+          })
+          .map((field) => ({
+            ...field,
+            ui: {
+              ...(field.ui || {}),
+              readOnly: field.ui?.readOnly || field.permissions?.canEdit === false,
+            },
+          })),
+      }))
+      .filter((section) => section.fields.length > 0),
+  };
 }
 
 export function evaluateConditionalRules(rules = [], values = {}) {

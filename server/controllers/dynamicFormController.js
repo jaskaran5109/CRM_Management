@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import DynamicForm from "../models/DynamicForm.js";
 import FormSubmission from "../models/FormSubmission.js";
 import User from "../models/User.js";
+import UserRole from "../models/UserRole.js";
 import {
   buildFieldMap,
   getVisibleSections,
@@ -14,6 +15,7 @@ import {
 const FORM_POPULATE = [
   { path: "createdBy", select: "name email role" },
   { path: "updatedBy", select: "name email role" },
+  { path: "sections.fields.permissions.userRoles", select: "name status" },
 ];
 
 const SUBMISSION_POPULATE = [
@@ -50,21 +52,22 @@ function sanitizeSubmissionData(rawData = {}, visibleSections = []) {
 }
 
 function filterFormForUser(form, reqUser) {
-  const roleNames = new Set([
-    reqUser?.role,
-    ...(Array.isArray(reqUser?.userRole)
-      ? reqUser.userRole.map((role) => role?.name || role).filter(Boolean)
-      : []),
-  ]);
+  const userRoleIds = new Set(
+    Array.isArray(reqUser?.userRole)
+      ? reqUser.userRole.map((role) => String(role?._id || role)).filter(Boolean)
+      : [],
+  );
 
   const sections = (form.sections || [])
     .map((section) => ({
       ...section,
       fields: (section.fields || [])
         .filter((field) => {
-        const permittedRoles = field.permissions?.roles || [];
+        const permittedRoles = (field.permissions?.userRoles || []).map((role) =>
+          String(role?._id || role),
+        );
         const roleAllowed =
-          permittedRoles.length === 0 || permittedRoles.some((role) => roleNames.has(role));
+          permittedRoles.length === 0 || permittedRoles.some((role) => userRoleIds.has(role));
 
         if (!roleAllowed || field.permissions?.canView === false) {
           return false;
@@ -95,6 +98,35 @@ async function ensureUniqueSlug(slug, excludeId = null) {
   }).select("_id");
 
   return !existing;
+}
+
+async function validateFormUserRoles(sections = []) {
+  const userRoleIds = [
+    ...new Set(
+      sections
+        .flatMap((section) => section.fields || [])
+        .flatMap((field) => field.permissions?.userRoles || [])
+        .map((roleId) => String(roleId).trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (userRoleIds.length === 0) {
+    return null;
+  }
+
+  for (const roleId of userRoleIds) {
+    if (!mongoose.Types.ObjectId.isValid(roleId)) {
+      return `Invalid user role id: ${roleId}`;
+    }
+  }
+
+  const roles = await UserRole.find({ _id: { $in: userRoleIds } }).select("_id").lean();
+  if (roles.length !== userRoleIds.length) {
+    return "One or more selected user roles do not exist";
+  }
+
+  return null;
 }
 
 export async function listDynamicForms(req, res) {
@@ -168,7 +200,7 @@ export async function getDynamicForm(req, res) {
       return res.status(404).json({ message: "Dynamic form not found" });
     }
 
-    const payload = req.user.role === "admin" ? form : filterFormForUser(form, req.user);
+    const payload = filterFormForUser(form, req.user);
 
     res.json({
       message: "Dynamic form retrieved successfully",
@@ -190,6 +222,11 @@ export async function createDynamicForm(req, res) {
 
     if (normalized.sections.length === 0) {
       return res.status(400).json({ message: "At least one section is required" });
+    }
+
+    const userRoleValidationError = await validateFormUserRoles(normalized.sections);
+    if (userRoleValidationError) {
+      return res.status(400).json({ message: userRoleValidationError });
     }
 
     const slugAvailable = await ensureUniqueSlug(normalized.slug);
@@ -233,6 +270,11 @@ export async function updateDynamicForm(req, res) {
 
     if (normalized.sections.length === 0) {
       return res.status(400).json({ message: "At least one section is required" });
+    }
+
+    const userRoleValidationError = await validateFormUserRoles(normalized.sections);
+    if (userRoleValidationError) {
+      return res.status(400).json({ message: userRoleValidationError });
     }
 
     const slugAvailable = await ensureUniqueSlug(normalized.slug, existing._id);

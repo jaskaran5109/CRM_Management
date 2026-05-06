@@ -118,10 +118,13 @@ export default function FieldRenderer({
 
   return (
     <div className={`dynamic-form__field ${error ? "has-error" : ""}`}>
-      <label className="dynamic-form__label" htmlFor={field.key}>
-        {field.label}
-        {field.validations?.required ? <span className="dynamic-form__required"> *</span> : null}
-      </label>
+      <div className="dynamic-form__field-head">
+        <label className="dynamic-form__label" htmlFor={field.key}>
+          {field.label}
+          {field.validations?.required ? <span className="dynamic-form__required"> *</span> : null}
+        </label>
+        {field.ui?.readOnly ? <span className="dynamic-form__flag">Read only</span> : null}
+      </div>
       {control}
       {field.helperText && field.type !== "checkbox" && field.type !== "switch" ? (
         <p className="dynamic-form__helper">{field.helperText}</p>

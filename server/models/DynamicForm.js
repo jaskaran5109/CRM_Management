@@ -46,7 +46,12 @@ const fieldValidationSchema = new mongoose.Schema(
 
 const fieldPermissionSchema = new mongoose.Schema(
   {
-    roles: [{ type: String, trim: true }],
+    userRoles: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserRole",
+      },
+    ],
     canView: { type: Boolean, default: true },
     canEdit: { type: Boolean, default: true },
   },
